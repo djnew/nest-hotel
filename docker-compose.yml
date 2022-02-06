@@ -1,0 +1,32 @@
+version: '3.6'
+services:
+  ndts-diplom-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ndts-diplom-app
+    entrypoint: ['yarn', 'watch']
+    env_file:
+      - .env
+    ports:
+      - 80:${PORT:-3000}
+    volumes:
+      - ".:/var/www"
+    links:
+      - ndts-diplom-mongo
+    depends_on:
+      - ndts-diplom-mongo
+  ndts-diplom-mongo:
+    image: mongo:5.0.3
+    container_name: ndjs-4-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_CONNECT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_CONNECT_PASSWORD:-password}
+    volumes:
+      - ndts_mongo_data:/data/db
+
+volumes:
+  ndts_mongo_data:
