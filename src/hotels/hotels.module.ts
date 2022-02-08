@@ -6,6 +6,7 @@ import { Hotel, HotelSchema } from 'src/hotels/entities/hotel.entity';
 import { Room, RoomSchema } from 'src/hotels/entities/room.entity';
 import { RoomsFilterService } from 'src/hotels/service/rooms/rooms-filter.service';
 import { RoomsService } from 'src/hotels/service/rooms/rooms.service';
+import { RoomsController } from './controller/rooms.controller';
 import { HotelsProvider } from './hotels.provider';
 
 @Module({
@@ -15,8 +16,13 @@ import { HotelsProvider } from './hotels.provider';
       { name: Room.name, schema: RoomSchema },
     ]),
   ],
-  controllers: [HotelsController],
-  providers: [HotelsService, RoomsService, RoomsFilterService],
+  controllers: [HotelsController, RoomsController],
+  providers: [
+    HotelsService,
+    RoomsService,
+    RoomsFilterService,
+    ...HotelsProvider,
+  ],
   exports: [...HotelsProvider],
 })
 export class HotelsModule {}

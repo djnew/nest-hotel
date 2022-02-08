@@ -5,13 +5,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserProvider } from 'src/users/users.provider';
 import { UsersService } from 'src/users/service/users.service';
 import { UsersFilterService } from 'src/users/service/users-filter.service';
+import { UserSeed } from './seeds/user.seed';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, UsersFilterService, ...UserProvider],
-  exports: [...UserProvider],
+  providers: [UsersService, UsersFilterService, UserSeed, ...UserProvider],
+  exports: [...UserProvider, UserSeed],
 })
 export class UsersModule {}

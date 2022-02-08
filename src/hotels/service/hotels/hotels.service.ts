@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateHotelDto } from 'src/hotels/dto/create-hotel.dto';
+import { CreateHotel } from 'src/hotels/dto/create-hotel.dto';
 import { IHotelService } from 'src/hotels/service/hotels/i-hotels.service';
 import { Hotel, HotelDocument } from 'src/hotels/entities/hotel.entity';
 import { ID } from 'src/types/types';
@@ -15,7 +15,7 @@ export class HotelsService implements IHotelService {
   constructor(
     @InjectModel(Hotel.name) private readonly hotelModel: Model<HotelDocument>,
   ) {}
-  async create(createHotelDto: CreateHotelDto): Promise<HotelDocument> {
+  async create(createHotelDto: CreateHotel): Promise<HotelDocument> {
     const newHotel = new this.hotelModel(createHotelDto);
     try {
       await newHotel.save();

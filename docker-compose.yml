@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ndts-diplom-app
-    entrypoint: ['yarn', 'watch']
+    entrypoint: ['npm', 'run', 'start:dev']
     env_file:
       - .env
     ports:
@@ -18,7 +18,7 @@ services:
       - ndts-diplom-mongo
   ndts-diplom-mongo:
     image: mongo:5.0.3
-    container_name: ndjs-4-mongo
+    container_name: ndts-dipom-mongo
     restart: always
     ports:
       - "27017:27017"

@@ -8,6 +8,8 @@ import {
 } from './entities/support-request.entity';
 import { ChatService } from './service/chat.service';
 import { ChatGateway } from './chat.gateway';
+import { SupportRequestClientService } from './service/support-request-client.service';
+import { SupportRequestEmployeeService } from './service/support-request-employee.service';
 import { SupportRequestService } from './service/support-request.service';
 
 @Module({
@@ -20,7 +22,14 @@ import { SupportRequestService } from './service/support-request.service';
       },
     ]),
   ],
-  providers: [ChatGateway, ChatService, SupportRequestService, ...ChatProvider],
+  providers: [
+    ChatGateway,
+    ChatService,
+    SupportRequestService,
+    SupportRequestEmployeeService,
+    SupportRequestClientService,
+    ...ChatProvider,
+  ],
   exports: [...ChatProvider],
 })
 export class ChatModule {}

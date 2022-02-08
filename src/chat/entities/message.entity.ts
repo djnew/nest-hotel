@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { ID } from '../../types/types';
 
 export type MessageDocument = IMessage & Document;
@@ -14,7 +14,7 @@ export interface IMessage {
 
 @Schema()
 export class Message implements IMessage {
-  @Prop({ required: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId })
   author: ID;
   @Prop({ required: true })
   readAt: Date;

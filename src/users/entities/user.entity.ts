@@ -2,6 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { ID } from '../../types/types';
 
+export enum UserRole {
+  Client = 'client',
+  Admin = 'admin',
+  Manager = 'manager',
+}
+
 export interface IUser {
   _id?: ID;
   email: string;
@@ -9,6 +15,13 @@ export interface IUser {
   name: string;
   contactPhone: string;
   role: string;
+}
+
+export interface IUserResponse {
+  id: ID;
+  email: string;
+  name: string;
+  role?: string;
 }
 
 export type UserDocument = IUser & Document;
@@ -23,7 +36,7 @@ export class User implements IUser {
   name: string;
   @Prop({ required: true })
   passwordHash: string;
-  @Prop({ required: true, default: 'client' })
+  @Prop({ required: true, default: UserRole.Client })
   role: string;
 }
 

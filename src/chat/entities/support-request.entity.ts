@@ -20,7 +20,7 @@ export class SupportRequest implements ISupportRequest {
   isActive?: boolean;
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Message', optional: true })
   messages?: ID[];
-  @Prop({ required: true })
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId })
   user: ID;
 }
 

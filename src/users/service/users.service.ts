@@ -1,72 +1,117 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { SearchUserParams } from 'src/users/service/i-users.service';
-import { IUser, User, UserDocument } from 'src/users/entities/user.entity';
+import {
+  IUser,
+  IUserResponse,
+  User,
+  UserDocument,
+  UserRole,
+} from 'src/users/entities/user.entity';
 import { ID } from 'src/types/types';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import { UsersFilterService } from 'src/users/service/users-filter.service';
 
 export const I_USER_SERVICE = 'I_USER_SERVICE';
 
 export interface IUserService {
-  create(data: Partial<IUser>): Promise<IUser>;
-  findById(id: ID): Promise<IUser>;
-  findByEmail(email: string): Promise<IUser>;
-  findAll(params: SearchUserParams): Promise<IUser[]>;
+  create(data: Partial<IUser>): Promise<IUserResponse>;
+
+  findById(id: ID): Promise<IUserResponse>;
+
+  findByEmail(email: string): Promise<UserDocument>;
+
+  findAll(params: SearchUserParams): Promise<IUserResponse[]>;
 }
 
 @Injectable()
 export class UsersService implements IUserService {
+  private logger: Logger = new Logger('UsersService');
+
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectConnection() private connection: Connection,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private readonly filterService: UsersFilterService,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<IUser> {
-    const newUser = new this.userModel(createUserDto);
+  async create(createUserDto: CreateUserDto): Promise<IUserResponse> {
+    const userRoles = Object.values(UserRole) as string[];
+    if (!userRoles.includes(createUserDto.role)) {
+      this.logger.error(
+        `Создание пользователя с несуществующей ролью: ${JSON.stringify(
+          createUserDto,
+        )}`,
+      );
+      throw new BadRequestException();
+    }
+    const passwordHash = await bcrypt.hash(createUserDto.password, 10);
+    const userParams: IUser = {
+      email: createUserDto.email,
+      passwordHash,
+      name: createUserDto.name,
+      contactPhone: createUserDto.contactPhone,
+      role: createUserDto.role,
+    };
+    const newUser = new this.userModel(userParams);
     try {
-      return newUser.save();
+      const { id, email, name } = await newUser.save();
+      return { id, email, name };
     } catch (e) {
-      console.error(e);
+      this.logger.error(e);
       throw new BadRequestException();
     }
   }
 
-  async findAll(params: SearchUserParams): Promise<IUser[]> {
+  async findAll(params: SearchUserParams): Promise<IUserResponse[]> {
     const { filter, offset, limit } =
       this.filterService.createUserListFilter(params);
+
     try {
-      return await this.userModel
+      const userList = await this.userModel
         .find(filter)
         .limit(limit)
         .skip(offset)
         .select('-__v')
         .exec();
+      return userList.map((user) => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      }));
     } catch (e) {
-      console.error(e);
+      this.logger.error(e);
       throw new BadRequestException();
     }
   }
 
-  async findById(id: ID): Promise<IUser> {
+  async findById(id: ID): Promise<IUserResponse> {
+    this.logger.log('findById', id);
     try {
-      return this.userModel.findOne({ _id: id });
+      const user = await this.userModel.findOne({ _id: id }).exec();
+      return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      };
     } catch (e) {
-      console.error(e);
+      this.logger.error(e);
       throw new NotFoundException();
     }
   }
 
-  async findByEmail(email: string): Promise<IUser> {
+  async findByEmail(email: string): Promise<UserDocument> {
     try {
-      return this.userModel.findOne({ email: email }).select('-__v');
+      return await this.userModel.findOne({ email: email }).exec();
     } catch (e) {
-      console.error(e);
+      this.logger.error(e);
       throw new NotFoundException();
     }
   }

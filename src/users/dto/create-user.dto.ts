@@ -1,9 +1,7 @@
-import { IUser } from 'src/users/entities/user.entity';
-
-export class CreateUserDto implements IUser {
+export class CreateUserDto {
   contactPhone: string;
   email: string;
   name: string;
-  passwordHash: string;
-  role: string;
+  password: string;
+  role?: string;
 }

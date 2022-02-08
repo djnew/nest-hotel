@@ -6,13 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { IRoom, Room, RoomDocument } from 'src/hotels/entities/room.entity';
 import {
   HotelRoomService,
   SearchRoomsParams,
 } from 'src/hotels/service/rooms/i-rooms.service';
-import { IRoom, Room, RoomDocument } from 'src/hotels/entities/room.entity';
 import { RoomsFilterService } from 'src/hotels/service/rooms/rooms-filter.service';
 import { ID } from 'src/types/types';
+import { HotelDocument } from '../../entities/hotel.entity';
 
 @Injectable()
 export class RoomsService implements HotelRoomService {
@@ -21,11 +22,17 @@ export class RoomsService implements HotelRoomService {
     @Inject(RoomsFilterService) private readonly roomFilter: RoomsFilterService,
   ) {}
 
-  async create(data: Partial<IRoom>): Promise<RoomDocument> {
+  async create(
+    data: Partial<IRoom>,
+  ): Promise<RoomDocument & { hotel: HotelDocument }> {
     const newRoom = new this.roomModel(data);
     try {
       await newRoom.save();
-      return newRoom;
+      return this.roomModel
+        .findById(newRoom.id)
+        .populate<{ hotel: HotelDocument }>('hotel')
+        .orFail()
+        .exec();
     } catch (e) {
       console.error(e);
       throw new BadRequestException();
