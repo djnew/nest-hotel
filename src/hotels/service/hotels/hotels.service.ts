@@ -13,7 +13,10 @@ import {
   IHotelServiceAdditionalMethods,
   IHotelsService,
 } from '../../base/hotels.service.base';
-import { HotelDocument, IHotel } from '../../base/hotels.types.base';
+import {
+  IHotelInSearchRoomResponse,
+  IHotel,
+} from '../../base/hotels.types.base';
 import { RoomFilter } from '../../base/rooms.types.base';
 import { HotelsFilterService } from './hotels-filter.service';
 
@@ -24,14 +27,17 @@ export class HotelsService
   private readonly makeId;
 
   constructor(
-    @InjectModel(Hotel.name) private readonly hotelModel: Model<HotelDocument>,
+    @InjectModel(Hotel.name)
+    private readonly hotelModel: Model<IHotelInSearchRoomResponse>,
     @Inject(HotelsFilterService)
     private readonly hotelFilter: HotelsFilterService,
   ) {
     this.makeId = make<IHotel['_id']>();
   }
 
-  async create(createHotelDto: CreateHotelDTO): Promise<HotelDocument> {
+  async create(
+    createHotelDto: CreateHotelDTO,
+  ): Promise<IHotelInSearchRoomResponse> {
     const newHotel = new this.hotelModel(createHotelDto);
     try {
       await newHotel.save();
@@ -42,16 +48,23 @@ export class HotelsService
     }
   }
 
-  async findById(id: IHotel['_id']): Promise<HotelDocument> {
+  async findById(id: IHotel['_id']): Promise<IHotelInSearchRoomResponse> {
     try {
-      return this.hotelModel.findOne({ _id: id });
+      const room = await this.hotelModel.findOne({ _id: id }).exec();
+      return {
+        id: room.id,
+        title: room.title,
+        description: room.description,
+      };
     } catch (e) {
       console.error(e);
       throw new NotFoundException();
     }
   }
 
-  async search(params: Pick<HotelDocument, 'title'>): Promise<HotelDocument[]> {
+  async search(
+    params: Pick<IHotelInSearchRoomResponse, 'title'>,
+  ): Promise<IHotelInSearchRoomResponse[]> {
     try {
       return this.hotelModel
         .find({
@@ -71,12 +84,26 @@ export class HotelsService
     return this.makeId(id);
   }
 
-  async searchHotelByRoomFilter(
+  async searchHotelByCustomFilter(
     filterRooms: RoomFilter,
-  ): Promise<HotelDocument[]> {
+    limit = null,
+    offset = null,
+  ): Promise<IHotelInSearchRoomResponse[]> {
     try {
       const filter = this.hotelFilter.createHotelsListFilter(filterRooms);
-      return this.hotelModel.find(filter).select('-__v');
+      const hotelsQuery = this.hotelModel.find(filter).select('-__v');
+      if (limit) {
+        hotelsQuery.limit(limit);
+      }
+      if (offset) {
+        hotelsQuery.skip(offset);
+      }
+      const hotels = await hotelsQuery.exec();
+      return hotels.map((hotel) => ({
+        id: hotel.id,
+        title: hotel.title,
+        description: hotel.description,
+      }));
     } catch (e) {
       console.error(e);
       throw new NotFoundException();

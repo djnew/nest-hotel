@@ -30,9 +30,9 @@ export class RoomsController {
     private readonly hotelService: HotelsService,
   ) {}
 
+  @Post('admin/hotel-rooms')
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
-  @Post('admin/hotel-rooms')
   @UsePipes(new ValidationPipe())
   @UseInterceptors(
     FilesInterceptor('images', 20, {

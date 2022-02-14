@@ -1,12 +1,7 @@
 import { Document } from 'mongoose';
 import { Brand } from 'ts-brand';
 import { ID } from '../../types/types';
-import {
-  HotelDocument,
-  IHotel,
-  IHotelInCreateRoomResponse,
-  IHotelInSearchRoomResponse,
-} from './hotels.types.base';
+import { IHotel, IHotelInSearchRoomResponse } from './hotels.types.base';
 
 export type RoomDocument = IRoom & Document;
 
@@ -15,7 +10,7 @@ export interface ICreateRoomResponse {
   description: string;
   images: string[];
   isEnabled: boolean;
-  hotel: IHotelInCreateRoomResponse;
+  hotel: IHotelInSearchRoomResponse;
 }
 
 export interface IRoom {
@@ -23,7 +18,7 @@ export interface IRoom {
   createdAt?: Date;
   updatedAt?: Date;
   isEnabled: boolean;
-  hotel: IHotel['_id'] | HotelDocument;
+  hotel: IHotel['_id'] | IHotelInSearchRoomResponse;
   description?: string;
   images?: string[];
 }

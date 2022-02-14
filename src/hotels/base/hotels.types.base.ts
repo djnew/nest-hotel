@@ -11,12 +11,6 @@ export interface IHotel {
   description?: string;
 }
 
-export interface IHotelInCreateRoomResponse {
-  id: string;
-  title: string;
-  description: string;
-}
-
 export interface IHotelInSearchRoomResponse {
   id: string;
   title: string;

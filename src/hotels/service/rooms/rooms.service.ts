@@ -11,7 +11,7 @@ import { Room } from 'src/hotels/entities/room.entity';
 import { RoomsFilterService } from 'src/hotels/service/rooms/rooms-filter.service';
 import { ID } from 'src/types/types';
 import { make } from 'ts-brand';
-import { HotelDocument } from '../../base/hotels.types.base';
+import { IHotelInSearchRoomResponse } from '../../base/hotels.types.base';
 import { IHotelRoomsService } from '../../base/rooms.service.base';
 import {
   ICreateRoomResponse,
@@ -39,11 +39,12 @@ export class RoomsService implements IHotelRoomsService {
     const newRoom = new this.roomModel(data);
     try {
       await newRoom.save();
-      const room: RoomDocument & { hotel: HotelDocument } = await this.roomModel
-        .findById(newRoom.id)
-        .populate<{ hotel: HotelDocument }>('hotel')
-        .orFail()
-        .exec();
+      const room: RoomDocument & { hotel: IHotelInSearchRoomResponse } =
+        await this.roomModel
+          .findById(newRoom.id)
+          .populate<{ hotel: IHotelInSearchRoomResponse }>('hotel')
+          .orFail()
+          .exec();
       return {
         id: room.id,
         description: room.description,
@@ -101,9 +102,9 @@ export class RoomsService implements IHotelRoomsService {
       const { filter, limit, offset } =
         this.roomFilter.createRoomsListFilter(params);
 
-      let hotels: HotelDocument[];
+      let hotels: IHotelInSearchRoomResponse[];
       if ('hotel' in filter || 'title' in filter) {
-        hotels = await this.hotelService.searchHotelByRoomFilter(filter);
+        hotels = await this.hotelService.searchHotelByCustomFilter(filter);
         if (!hotels.length) {
           throw new NotFoundException();
         }
