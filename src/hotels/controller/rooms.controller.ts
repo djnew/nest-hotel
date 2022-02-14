@@ -9,6 +9,7 @@ import {
   Query,
   ValidationPipe,
   UsePipes,
+  Param,
 } from '@nestjs/common';
 import { Express } from 'express';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -59,5 +60,10 @@ export class RoomsController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async getRooms(@Query() searchParams: SearchRoomsDTO) {
     return await this.roomsService.search(searchParams);
+  }
+
+  @Get('common/hotel-rooms/:id')
+  async getRoom(@Param('id') id: string) {
+    return await this.roomsService.findById(this.roomsService.makeRoomId(id));
   }
 }

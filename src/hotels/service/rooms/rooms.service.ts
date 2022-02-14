@@ -61,7 +61,10 @@ export class RoomsService implements IHotelRoomsService {
     }
   }
 
-  async findById(id: IRoom['_id'], isEnabled?: true): Promise<RoomDocument> {
+  async findById(
+    id: IRoom['_id'],
+    isEnabled?: true,
+  ): Promise<ISearchRoomResponse> {
     const findParams = {
       _id: id,
     };
@@ -69,7 +72,23 @@ export class RoomsService implements IHotelRoomsService {
       findParams['isEnabled'] = true;
     }
     try {
-      return this.roomModel.findOne(findParams);
+      const room = await this.roomModel
+        .findOne(findParams)
+        .populate<Pick<RoomDocument, 'hotel'>>({
+          path: 'hotel',
+        })
+        .exec();
+      return {
+        id: room.id,
+        images: room.images,
+        description: room.description,
+        hotel: {
+          id: 'id' in room.hotel ? room.hotel.id : '',
+          title: 'title' in room.hotel ? room.hotel.title : '',
+          description:
+            'description' in room.hotel ? room.hotel.description : '',
+        },
+      };
     } catch (e) {
       console.error(e);
       throw new NotFoundException();
