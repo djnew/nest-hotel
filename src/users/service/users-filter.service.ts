@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SearchUserParams } from 'src/users/service/i-users.service';
+import { SearchUserParams } from '../base/users.types.base';
 
 @Injectable()
 export class UsersFilterService {

@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { HotelsService } from 'src/hotels/service/hotels/hotels.service';
-import { CreateHotel } from 'src/hotels/dto/create-hotel.dto';
+import { CreateHotelDTO } from 'src/hotels/dto/create-hotel.dto';
 import { LoginGuard } from '../../auth/guard/login.guard';
+import { UserRole } from '../../users/base/users.types.base';
 import { Roles } from '../../users/decorator/roles.decorator';
-import { UserRole } from '../../users/entities/user.entity';
 
 @Controller('api')
 export class HotelsController {
@@ -12,7 +12,7 @@ export class HotelsController {
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
   @Post('admin/hotels')
-  async create(@Body() createHotelDto: CreateHotel) {
+  async create(@Body() createHotelDto: CreateHotelDTO) {
     const newHotel = await this.hotelsService.create(createHotelDto);
     return {
       id: newHotel.id,

@@ -4,32 +4,21 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
+import { Connection, Model } from 'mongoose';
+import { ID } from 'src/types/types';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { SearchUserParams } from 'src/users/service/i-users.service';
+import { User } from 'src/users/entities/user.entity';
+import { UsersFilterService } from 'src/users/service/users-filter.service';
 import {
   IUser,
   IUserResponse,
-  User,
+  SearchUserParams,
   UserDocument,
   UserRole,
-} from 'src/users/entities/user.entity';
-import { ID } from 'src/types/types';
-import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model } from 'mongoose';
-import { UsersFilterService } from 'src/users/service/users-filter.service';
-
-export const I_USER_SERVICE = 'I_USER_SERVICE';
-
-export interface IUserService {
-  create(data: Partial<IUser>): Promise<IUserResponse>;
-
-  findById(id: ID): Promise<IUserResponse>;
-
-  findByEmail(email: string): Promise<UserDocument>;
-
-  findAll(params: SearchUserParams): Promise<IUserResponse[]>;
-}
+} from '../base/users.types.base';
+import { IUserService } from '../base/users.service.base';
 
 @Injectable()
 export class UsersService implements IUserService {

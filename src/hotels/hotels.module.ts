@@ -8,6 +8,7 @@ import { RoomsFilterService } from 'src/hotels/service/rooms/rooms-filter.servic
 import { RoomsService } from 'src/hotels/service/rooms/rooms.service';
 import { RoomsController } from './controller/rooms.controller';
 import { HotelsProvider } from './hotels.provider';
+import { HotelsFilterService } from './service/hotels/hotels-filter.service';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { HotelsProvider } from './hotels.provider';
   controllers: [HotelsController, RoomsController],
   providers: [
     HotelsService,
+    HotelsFilterService,
     RoomsService,
     RoomsFilterService,
     ...HotelsProvider,

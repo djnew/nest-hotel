@@ -1,19 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-import { ID } from '../../types/types';
-import { HotelDocument } from './hotel.entity';
-
-export type RoomDocument = IRoom & Document;
-
-export interface IRoom {
-  _id?: ID;
-  createdAt?: Date;
-  updatedAt?: Date;
-  isEnabled: boolean;
-  hotel: HotelDocument | ID;
-  description?: string;
-  images?: string[];
-}
+import { Schema as MongooseSchema } from 'mongoose';
+import { IHotel } from '../base/hotels.types.base';
+import { IRoom } from '../base/rooms.types.base';
 
 @Schema({ timestamps: true })
 export class Room implements IRoom {
@@ -21,7 +9,7 @@ export class Room implements IRoom {
   isEnabled: boolean;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, required: true, ref: 'Hotel' })
-  hotel: HotelDocument | ID;
+  hotel: IHotel['_id'];
 
   @Prop({ optional: true })
   description: string;

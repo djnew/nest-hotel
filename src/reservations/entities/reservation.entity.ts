@@ -1,17 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Schema as MongooseSchema } from 'mongoose';
 import { ID } from '../../types/types';
-
-export type ReservationDocument = IReservation & Document;
-
-export interface IReservation {
-  _id?: ID;
-  userId: ID;
-  hotelId: ID;
-  roomId: ID;
-  dateStart: Date;
-  dateEnd: Date;
-}
+import { IReservation } from '../base/reservation.type.base';
 
 @Schema()
 export class Reservation implements IReservation {

@@ -1,21 +1,37 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateHotel } from 'src/hotels/dto/create-hotel.dto';
-import { IHotelService } from 'src/hotels/service/hotels/i-hotels.service';
-import { Hotel, HotelDocument } from 'src/hotels/entities/hotel.entity';
-import { ID } from 'src/types/types';
+import { CreateHotelDTO } from 'src/hotels/dto/create-hotel.dto';
+import { Hotel } from 'src/hotels/entities/hotel.entity';
+import { make } from 'ts-brand';
+import {
+  IHotelServiceAdditionalMethods,
+  IHotelsService,
+} from '../../base/hotels.service.base';
+import { HotelDocument, IHotel } from '../../base/hotels.types.base';
+import { RoomFilter } from '../../base/rooms.types.base';
+import { HotelsFilterService } from './hotels-filter.service';
 
 @Injectable()
-export class HotelsService implements IHotelService {
+export class HotelsService
+  implements IHotelsService, IHotelServiceAdditionalMethods
+{
+  private readonly makeId;
+
   constructor(
     @InjectModel(Hotel.name) private readonly hotelModel: Model<HotelDocument>,
-  ) {}
-  async create(createHotelDto: CreateHotel): Promise<HotelDocument> {
+    @Inject(HotelsFilterService)
+    private readonly hotelFilter: HotelsFilterService,
+  ) {
+    this.makeId = make<IHotel['_id']>();
+  }
+
+  async create(createHotelDto: CreateHotelDTO): Promise<HotelDocument> {
     const newHotel = new this.hotelModel(createHotelDto);
     try {
       await newHotel.save();
@@ -26,7 +42,7 @@ export class HotelsService implements IHotelService {
     }
   }
 
-  async findById(id: ID): Promise<HotelDocument> {
+  async findById(id: IHotel['_id']): Promise<HotelDocument> {
     try {
       return this.hotelModel.findOne({ _id: id });
     } catch (e) {
@@ -45,6 +61,22 @@ export class HotelsService implements IHotelService {
           },
         })
         .select('-__v');
+    } catch (e) {
+      console.error(e);
+      throw new NotFoundException();
+    }
+  }
+
+  makeHotelId(id: string): IHotel['_id'] {
+    return this.makeId(id);
+  }
+
+  async searchHotelByRoomFilter(
+    filterRooms: RoomFilter,
+  ): Promise<HotelDocument[]> {
+    try {
+      const filter = this.hotelFilter.createHotelsListFilter(filterRooms);
+      return this.hotelModel.find(filter).select('-__v');
     } catch (e) {
       console.error(e);
       throw new NotFoundException();

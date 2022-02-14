@@ -1,34 +1,40 @@
-import { Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { RoomDocument } from '../../hotels/entities/room.entity';
+import { make } from 'ts-brand';
 import {
-  HotelRoomService,
+  I_HOTELS_SERVICE,
+  IHotelsService,
+} from '../../hotels/base/hotels.service.base';
+import { IHotel } from '../../hotels/base/hotels.types.base';
+import {
   I_ROOMS_SERVICE,
-} from '../../hotels/service/rooms/i-rooms.service';
-import { ReservationDto } from '../dto/reservation.dto';
+  IHotelRoomsService,
+} from '../../hotels/base/rooms.service.base';
+import { IRoom, RoomDocument } from '../../hotels/base/rooms.types.base';
+import { IReservationService } from '../base/reservation.service.base';
 import {
-  Reservation,
+  IReservation,
   ReservationDocument,
-} from '../entities/reservation.entity';
-import { ReservationSearchOptions } from './i-reservations.service';
-
-export interface IReservation {
-  addReservation(data: ReservationDto): Promise<ReservationDocument>;
-  removeReservation(id: string): Promise<void>;
-  getReservations(
-    filter: ReservationSearchOptions,
-  ): Promise<Array<ReservationDocument>>;
-}
+  ReservationSearchOptions,
+} from '../base/reservation.type.base';
+import { ReservationDto } from '../dto/reservation.dto';
+import { Reservation } from '../entities/reservation.entity';
 
 @Injectable()
-export class ReservationsService implements IReservation {
+export class ReservationsService implements IReservationService {
+  private readonly makeId;
+
   constructor(
     @InjectModel(Reservation.name)
     private readonly reservationModel: Model<ReservationDocument>,
+    @Inject(I_HOTELS_SERVICE)
+    private readonly hotelService: IHotelsService,
     @Inject(I_ROOMS_SERVICE)
-    private readonly roomService: HotelRoomService,
-  ) {}
+    private readonly roomService: IHotelRoomsService,
+  ) {
+    this.makeId = make<IReservation['_id']>();
+  }
 
   async addReservation(data: ReservationDto): Promise<ReservationDocument> {
     try {
@@ -36,11 +42,13 @@ export class ReservationsService implements IReservation {
 
       if (room) {
         const reservation: ReservationDocument[] =
-          await this.reservationModel.find({
-            roomId: data.room,
-            dateStart: { $gte: data.dateStart, $lte: data.dateEnd },
-            dateEnd: { $gte: data.dateStart, $lte: data.dateEnd },
-          });
+          await this.searchReservationForDates(
+            this.roomService.makeRoomId(data.room),
+            this.hotelService.makeHotelId(data.hotel),
+            data.dateStart,
+            data.dateEnd,
+          );
+
         if (!reservation.length) {
           const newReservation = new this.reservationModel(data);
           await newReservation.save();
@@ -67,6 +75,20 @@ export class ReservationsService implements IReservation {
     }
   }
 
+  async searchReservationForDates(
+    roomId: IRoom['_id'],
+    hotelId: IHotel['_id'],
+    dateStart: string,
+    dateEnd: string,
+  ): Promise<ReservationDocument[]> {
+    return this.reservationModel.find({
+      roomId: roomId,
+      hotelId: hotelId,
+      dateStart: { $gte: dateStart, $lte: dateEnd },
+      dateEnd: { $gte: dateStart, $lte: dateEnd },
+    });
+  }
+
   async getReservations(
     filter: ReservationSearchOptions,
   ): Promise<Array<ReservationDocument>> {
@@ -90,5 +112,9 @@ export class ReservationsService implements IReservation {
 
   async removeReservation(id: string): Promise<void> {
     await this.reservationModel.deleteOne({ _id: id });
+  }
+
+  makeReservationId(id: string): IReservation['_id'] {
+    return this.makeId(id);
   }
 }

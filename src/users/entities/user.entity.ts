@@ -1,30 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { ID } from '../../types/types';
-
-export enum UserRole {
-  Client = 'client',
-  Admin = 'admin',
-  Manager = 'manager',
-}
-
-export interface IUser {
-  _id?: ID;
-  email: string;
-  passwordHash: string;
-  name: string;
-  contactPhone: string;
-  role: string;
-}
-
-export interface IUserResponse {
-  id: ID;
-  email: string;
-  name: string;
-  role?: string;
-}
-
-export type UserDocument = IUser & Document;
+import { IUser, UserRole } from '../base/users.types.base';
 
 @Schema()
 export class User implements IUser {

@@ -1,19 +1,16 @@
-import { ID } from '../../types/types';
-import { IRoom } from '../entities/room.entity';
+import { IsOptional, IsString } from 'class-validator';
 
-export class CreateRoom {
+export class CreateRoomDTO {
+  @IsString()
+  @IsOptional()
   title: string;
-  description: string;
-  hotel: string;
-  images: string[];
-}
 
-export class CreateRoomDto implements IRoom {
-  _id?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  description?: string;
-  hotel: ID;
-  images?: string[];
-  isEnabled: boolean;
+  @IsString()
+  @IsOptional()
+  description: string;
+
+  @IsString()
+  hotel: string;
+
+  images: string[];
 }

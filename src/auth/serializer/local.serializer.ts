@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PassportSerializer } from '@nestjs/passport';
-import { UserDocument } from '../../users/entities/user.entity';
+import { UserDocument } from '../../users/base/users.types.base';
 import {
   I_USER_SERVICE,
   IUserService,
-} from '../../users/service/users.service';
+} from '../../users/base/users.service.base';
 import { AuthService } from '../service/auth.service';
 
 @Injectable()

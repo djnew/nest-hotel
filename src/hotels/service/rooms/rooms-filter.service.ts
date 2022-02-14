@@ -1,29 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { SearchRoomsParams } from 'src/hotels/service/rooms/i-rooms.service';
-
-export interface RoomFilter {
-  title: string;
-  isEnable?: true;
-}
+import { Injectable, Logger } from '@nestjs/common';
+import { RoomFilter, SearchRoomsParams } from '../../base/rooms.types.base';
 
 @Injectable()
 export class RoomsFilterService {
+  private logger: Logger = new Logger('RoomsFilterService');
+
   createRoomsListFilter(searchParams: SearchRoomsParams): {
     filter: RoomFilter;
     limit: number;
     offset: number;
   } {
     const { limit, offset } = searchParams;
-    const filterParamName = ['title', 'isEnabled'];
-    const filter: RoomFilter = {
-      title: '',
-    };
+
+    const filter: RoomFilter = {};
     Object.keys(searchParams).map((key: string) => {
-      if (filterParamName.includes(key)) {
-        filter[key] = {
-          $regex: new RegExp(searchParams[key]),
-          $options: 'i',
-        };
+      if (this[key] !== undefined) {
+        filter[key] = this[key](searchParams[key]);
       }
     });
     return {
@@ -31,5 +23,20 @@ export class RoomsFilterService {
       limit,
       offset,
     };
+  }
+
+  hotel(val: string) {
+    return val;
+  }
+
+  title(val: string) {
+    return {
+      $regex: new RegExp(val),
+      $options: 'i',
+    };
+  }
+
+  isEnabled(val: boolean) {
+    return { $eq: val };
   }
 }

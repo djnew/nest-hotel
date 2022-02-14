@@ -5,6 +5,10 @@ import {
   UseInterceptors,
   UploadedFiles,
   UseGuards,
+  Get,
+  Query,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common';
 import { Express } from 'express';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -12,17 +16,23 @@ import { diskStorage } from 'multer';
 import { RoomsService } from 'src/hotels/service/rooms/rooms.service';
 import { LoginGuard } from '../../auth/guard/login.guard';
 import { editFileName, imageFileFilter } from '../../multer/multer.files';
+import { UserRole } from '../../users/base/users.types.base';
 import { Roles } from '../../users/decorator/roles.decorator';
-import { UserRole } from '../../users/entities/user.entity';
-import { CreateRoom } from '../dto/create-room.dto';
+import { CreateRoomDTO } from '../dto/create-room.dto';
+import { SearchRoomsDTO } from '../dto/search-rooms.dto';
+import { HotelsService } from '../service/hotels/hotels.service';
 
 @Controller('api')
 export class RoomsController {
-  constructor(private readonly roomsService: RoomsService) {}
+  constructor(
+    private readonly roomsService: RoomsService,
+    private readonly hotelService: HotelsService,
+  ) {}
 
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
   @Post('admin/hotel-rooms')
+  @UsePipes(new ValidationPipe())
   @UseInterceptors(
     FilesInterceptor('images', 20, {
       storage: diskStorage({
@@ -34,24 +44,20 @@ export class RoomsController {
   )
   async create(
     @UploadedFiles() images: Array<Express.Multer.File>,
-    @Body() createRoomDto: CreateRoom,
+    @Body() createRoomDto: CreateRoomDTO,
   ) {
-    const newRoom = await this.roomsService.create({
-      ...createRoomDto,
+    const { hotel: hotelId, ...params } = createRoomDto;
+    return await this.roomsService.create({
+      ...params,
+      hotel: this.hotelService.makeHotelId(hotelId),
       isEnabled: true,
       images: images.map((image) => image.path),
     });
+  }
 
-    return {
-      id: newRoom.id,
-      description: newRoom.description,
-      images: newRoom.images,
-      isEnabled: newRoom.isEnabled,
-      hotel: {
-        id: newRoom.hotel._id,
-        title: newRoom.hotel.title,
-        description: newRoom.hotel.description,
-      },
-    };
+  @Get('common/hotel-rooms')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getRooms(@Query() searchParams: SearchRoomsDTO) {
+    return await this.roomsService.search(searchParams);
   }
 }

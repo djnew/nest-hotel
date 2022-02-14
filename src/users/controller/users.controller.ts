@@ -8,12 +8,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { SearchUserParams } from 'src/users/service/i-users.service';
 import { UsersService } from 'src/users/service/users.service';
 import { LocalAuthGuard } from '../../auth/guard/local-auth.guard';
 import { LoginGuard } from '../../auth/guard/login.guard';
+import { SearchUserParams, UserRole } from '../base/users.types.base';
 import { Roles } from '../decorator/roles.decorator';
-import { UserRole } from '../entities/user.entity';
 
 @Controller('api')
 export class UsersController {

@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Param, Delete } from '@nestjs/common';
+import { ReservationSearchOptions } from './base/reservation.type.base';
 import { ReservationDto } from './dto/reservation.dto';
-import { ReservationSearchOptions } from './service/i-reservations.service';
 import { ReservationsService } from './service/reservations.service';
 
 @Controller('reservations')

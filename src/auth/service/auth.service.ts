@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 import {
   I_USER_SERVICE,
   IUserService,
-} from '../../users/service/users.service';
+} from '../../users/base/users.service.base';
 
 @Injectable()
 export class AuthService {

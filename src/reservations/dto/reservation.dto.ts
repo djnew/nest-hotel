@@ -3,6 +3,6 @@ export interface ReservationDto {
   user: string;
   hotel: string;
   room: string;
-  dateStart: Date;
-  dateEnd: Date;
+  dateStart: string;
+  dateEnd: string;
 }
