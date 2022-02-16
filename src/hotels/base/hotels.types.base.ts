@@ -12,7 +12,7 @@ export interface IHotel {
 }
 
 export interface IHotelInSearchRoomResponse {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
 }

@@ -9,7 +9,6 @@ import {
   Query,
   Param,
 } from '@nestjs/common';
-import { of } from 'rxjs';
 import { HotelsService } from 'src/hotels/service/hotels/hotels.service';
 import { CreateHotelDTO } from 'src/hotels/dto/create-hotel.dto';
 import { LoginGuard } from '../../auth/guard/login.guard';
@@ -26,12 +25,7 @@ export class HotelsController {
   @UsePipes(new ValidationPipe())
   @Post('admin/hotels')
   async create(@Body() createHotelDto: CreateHotelDTO) {
-    const newHotel = await this.hotelsService.create(createHotelDto);
-    return {
-      id: newHotel.id,
-      title: newHotel.title,
-      description: newHotel.description,
-    };
+    return this.hotelsService.create(createHotelDto);
   }
 
   @Get('admin/hotels/')

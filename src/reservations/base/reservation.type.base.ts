@@ -1,20 +1,34 @@
+import * as dayjs from 'dayjs';
 import { Document } from 'mongoose';
 import { Brand } from 'ts-brand';
+import {
+  IHotel,
+  IHotelInSearchRoomResponse,
+} from '../../hotels/base/hotels.types.base';
+import { IRoom, ISearchRoomResponse } from '../../hotels/base/rooms.types.base';
 import { ID } from '../../types/types';
+import { IUser } from '../../users/base/users.types.base';
 
 export interface ReservationSearchOptions {
-  user: string;
-  dateStart: Date;
-  dateEnd: Date;
+  user: IUser['_id'];
+  dateStart: dayjs.Dayjs;
+  dateEnd: dayjs.Dayjs;
 }
 
 export type ReservationDocument = IReservation & Document;
 
 export interface IReservation {
   _id?: Brand<ID, IReservation>;
-  userId: ID;
-  hotelId: ID;
-  roomId: ID;
   dateStart: Date;
   dateEnd: Date;
+  userId: Brand<ID, IUser>;
+  hotelId: Brand<ID, IHotel>;
+  roomId: Brand<ID, IRoom>;
+}
+
+export interface ISaveReservationResponse {
+  hotel: IHotelInSearchRoomResponse;
+  hotelRoom: ISearchRoomResponse;
+  startDate: string;
+  endDate: string;
 }

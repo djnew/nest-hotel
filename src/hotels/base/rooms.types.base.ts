@@ -32,10 +32,10 @@ export interface SearchRoomsParams {
 }
 
 export interface ISearchRoomResponse {
-  id: string;
+  id?: string;
   images: string[];
   description: string;
-  hotel: IHotelInSearchRoomResponse;
+  hotel?: IHotelInSearchRoomResponse;
 }
 
 export interface RoomFilter {

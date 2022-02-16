@@ -16,7 +16,7 @@ export interface IHotelRoomsService {
 
   search(params: SearchRoomsParams): Promise<ISearchRoomResponse[]>;
 
-  update(id: ID, data: Partial<RoomDocument>): Promise<RoomDocument>;
+  update(id: ID, data: Partial<RoomDocument>): Promise<ICreateRoomResponse>;
 
   makeRoomId(id: string): IRoom['_id'];
 }

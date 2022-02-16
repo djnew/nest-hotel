@@ -9,7 +9,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Room } from 'src/hotels/entities/room.entity';
 import { RoomsFilterService } from 'src/hotels/service/rooms/rooms-filter.service';
-import { ID } from 'src/types/types';
+import * as fs from 'fs';
+import * as path from 'path';
 import { make } from 'ts-brand';
 import { IHotelInSearchRoomResponse } from '../../base/hotels.types.base';
 import { IHotelRoomsService } from '../../base/rooms.service.base';
@@ -51,7 +52,7 @@ export class RoomsService implements IHotelRoomsService {
         images: room.images,
         isEnabled: room.isEnabled,
         hotel: {
-          id: room.hotel._id,
+          id: room.hotel.id,
           title: room.hotel.title,
           description: room.hotel.description,
         },
@@ -146,8 +147,37 @@ export class RoomsService implements IHotelRoomsService {
     }
   }
 
-  async update(id: ID, data: Partial<RoomDocument>): Promise<RoomDocument> {
-    return Promise.resolve(undefined);
+  async update(
+    id: IRoom['_id'],
+    data: Partial<IRoom>,
+  ): Promise<ICreateRoomResponse> {
+    try {
+      const book = await this.findById(id);
+      book.images.forEach((image) => {
+        if (!data.images.includes(image)) {
+          fs.rmSync(path.resolve('../../../', image));
+        }
+      });
+      await this.roomModel.updateOne({ id }, data);
+      const roomUpdated = await this.roomModel
+        .findById(id)
+        .populate<{ hotel: IHotelInSearchRoomResponse }>('hotel')
+        .orFail()
+        .exec();
+      return {
+        id: roomUpdated.id,
+        description: roomUpdated.description,
+        images: roomUpdated.images,
+        isEnabled: roomUpdated.isEnabled,
+        hotel: {
+          id: roomUpdated.hotel.id,
+          title: roomUpdated.hotel.title,
+          description: roomUpdated.hotel.description,
+        },
+      };
+    } catch (e) {
+      throw new BadRequestException();
+    }
   }
 
   makeRoomId(id: string): IRoom['_id'] {

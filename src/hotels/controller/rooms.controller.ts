@@ -1,18 +1,19 @@
 import {
-  Controller,
-  Post,
   Body,
-  UseInterceptors,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
   UploadedFiles,
   UseGuards,
-  Get,
-  Query,
-  ValidationPipe,
+  UseInterceptors,
   UsePipes,
-  Param,
+  ValidationPipe,
 } from '@nestjs/common';
-import { Express } from 'express';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 import { diskStorage } from 'multer';
 import { RoomsService } from 'src/hotels/service/rooms/rooms.service';
 import { LoginGuard } from '../../auth/guard/login.guard';
@@ -65,5 +66,36 @@ export class RoomsController {
   @Get('common/hotel-rooms/:id')
   async getRoom(@Param('id') id: string) {
     return await this.roomsService.findById(this.roomsService.makeRoomId(id));
+  }
+
+  @Put('admin/hotel-rooms/:id')
+  @Roles(UserRole.Admin)
+  @UseGuards(LoginGuard)
+  @UsePipes(new ValidationPipe())
+  @UseInterceptors(
+    FilesInterceptor('images', 20, {
+      storage: diskStorage({
+        destination: './files/hotelRoomImages/',
+        filename: editFileName,
+      }),
+      fileFilter: imageFileFilter,
+    }),
+  )
+  async updateRoom(
+    @Param('id') id: string,
+    @UploadedFiles() images: Array<Express.Multer.File>,
+    @Body() createRoomDto: CreateRoomDTO,
+  ) {
+    const { images: oldImages, ...params } = createRoomDto;
+
+    const updateParams = {
+      ...params,
+      images: [...images.map((image) => image.path), ...oldImages],
+      hotel: this.hotelService.makeHotelId(createRoomDto.hotel),
+    };
+    return this.roomsService.update(
+      this.roomsService.makeRoomId(id),
+      updateParams,
+    );
   }
 }

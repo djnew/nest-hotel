@@ -1,4 +1,5 @@
 import { Document } from 'mongoose';
+import { Brand } from 'ts-brand';
 import { ID } from '../../types/types';
 
 export enum UserRole {
@@ -8,7 +9,7 @@ export enum UserRole {
 }
 
 export interface IUser {
-  _id?: ID;
+  _id?: Brand<ID, IUser>;
   email: string;
   passwordHash: string;
   name: string;

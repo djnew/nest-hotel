@@ -24,7 +24,7 @@ export class LocalSerializer extends PassportSerializer {
   async deserializeUser(userId: string, done: CallableFunction) {
     console.log('userId', userId);
     return await this.userService
-      .findById(userId)
+      .findById(this.userService.makeUserId(userId))
       .then((user) => done(null, user))
       .catch((error) => done(error));
   }

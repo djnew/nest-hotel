@@ -7,10 +7,10 @@ import {
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Connection, Model } from 'mongoose';
-import { ID } from 'src/types/types';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { User } from 'src/users/entities/user.entity';
 import { UsersFilterService } from 'src/users/service/users-filter.service';
+import { make } from 'ts-brand';
 import {
   IUser,
   IUserResponse,
@@ -23,12 +23,15 @@ import { IUserService } from '../base/users.service.base';
 @Injectable()
 export class UsersService implements IUserService {
   private logger: Logger = new Logger('UsersService');
+  private readonly makeId;
 
   constructor(
     @InjectConnection() private connection: Connection,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private readonly filterService: UsersFilterService,
-  ) {}
+  ) {
+    this.makeId = make<IUser['_id']>();
+  }
 
   async create(createUserDto: CreateUserDto): Promise<IUserResponse> {
     const userRoles = Object.values(UserRole) as string[];
@@ -80,7 +83,7 @@ export class UsersService implements IUserService {
     }
   }
 
-  async findById(id: ID): Promise<IUserResponse> {
+  async findById(id: IUser['_id']): Promise<IUserResponse> {
     this.logger.log('findById', id);
     try {
       const user = await this.userModel.findOne({ _id: id }).exec();
@@ -103,5 +106,8 @@ export class UsersService implements IUserService {
       this.logger.error(e);
       throw new NotFoundException();
     }
+  }
+  makeUserId(id: string): IUser['_id'] {
+    return this.makeId(id);
   }
 }

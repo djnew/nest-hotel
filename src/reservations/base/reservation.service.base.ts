@@ -1,6 +1,7 @@
 import { ReservationDto } from '../dto/reservation.dto';
 import {
   IReservation,
+  ISaveReservationResponse,
   ReservationDocument,
   ReservationSearchOptions,
 } from './reservation.type.base';
@@ -10,7 +11,7 @@ export const I_RESERVATION_SERVICE: unique symbol = Symbol(
 );
 
 export interface IReservationService {
-  addReservation(data: ReservationDto): Promise<ReservationDocument>;
+  addReservation(data: ReservationDto): Promise<ISaveReservationResponse>;
 
   removeReservation(id: string): Promise<void>;
 
