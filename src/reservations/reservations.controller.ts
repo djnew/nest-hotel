@@ -1,23 +1,21 @@
 import {
-  Controller,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
   UsePipes,
   ValidationPipe,
-  Logger,
-  UseGuards,
-  Req,
-  Get,
-  Query,
-  Inject,
 } from '@nestjs/common';
 import { LoginGuard } from '../auth/guard/login.guard';
 import { I_USER_SERVICE, IUserService } from '../users/base/users.service.base';
 import { UserRole } from '../users/base/users.types.base';
 import { Roles } from '../users/decorator/roles.decorator';
-import { ReservationSearchOptions } from './base/reservation.type.base';
 import { ReservationSearchDto } from './dto/reservation-search.dto';
 import { ReservationDto } from './dto/reservation.dto';
 import { ReservationsService } from './service/reservations.service';
@@ -44,7 +42,7 @@ export class ReservationsController {
   @UsePipes(new ValidationPipe({ transform: true }))
   getAllUserReservation(
     @Req() req,
-    @Param() userId: string,
+    @Param('userId') userId: string,
     @Query() reservationSearch: ReservationSearchDto,
   ) {
     return this.reservationsService.getReservations({
@@ -54,13 +52,13 @@ export class ReservationsController {
     });
   }
 
-  @Post()
-  findAll(@Body() params: ReservationSearchOptions) {
-    return this.reservationsService.getReservations(params);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reservationsService.removeReservation(id);
+  @Delete('/manager/reservations/:userId/:reservationId')
+  @Roles(UserRole.Manager)
+  @UseGuards(LoginGuard)
+  remove(@Param('userId') userId: string, @Param('reservationId') id: string) {
+    return this.reservationsService.removeReservation(
+      this.reservationsService.makeReservationId(id),
+      this.userService.makeUserId(userId),
+    );
   }
 }

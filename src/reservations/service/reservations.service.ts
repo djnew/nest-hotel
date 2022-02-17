@@ -20,11 +20,16 @@ import {
   I_ROOMS_SERVICE,
   IHotelRoomsService,
 } from '../../hotels/base/rooms.service.base';
-import { IRoom, ISearchRoomResponse } from '../../hotels/base/rooms.types.base';
+import {
+  IRoom,
+  ISearchRoomResponse,
+  RoomDocument,
+} from '../../hotels/base/rooms.types.base';
+import { IUser } from '../../users/base/users.types.base';
 import { IReservationService } from '../base/reservation.service.base';
 import {
   IReservation,
-  ISaveReservationResponse,
+  IReservationResponse,
   ReservationDocument,
   ReservationSearchOptions,
 } from '../base/reservation.type.base';
@@ -47,9 +52,7 @@ export class ReservationsService implements IReservationService {
     this.makeId = make<IReservation['_id']>();
   }
 
-  async addReservation(
-    data: ReservationDto,
-  ): Promise<ISaveReservationResponse> {
+  async addReservation(data: ReservationDto): Promise<IReservationResponse> {
     if (!data.startDate.isValid() || !data.endDate.isValid()) {
       throw new HttpException(
         {
@@ -143,7 +146,7 @@ export class ReservationsService implements IReservationService {
 
   async getReservations(
     filter: ReservationSearchOptions,
-  ): Promise<Array<ReservationDocument>> {
+  ): Promise<IReservationResponse[]> {
     if (!filter.dateStart.isValid() || !filter.dateStart.isValid()) {
       throw new HttpException(
         {
@@ -154,13 +157,37 @@ export class ReservationsService implements IReservationService {
       );
     }
     try {
-      return await this.reservationModel.find({
-        userId: filter.user,
-        $or: [
-          { dateStart: { $gte: filter.dateStart, $lte: filter.dateEnd } },
-          { dateEnd: { $gte: filter.dateStart, $lte: filter.dateEnd } },
-        ],
-      });
+      const reservations = await this.reservationModel
+        .find({
+          userId: filter.user,
+          $or: [
+            { dateStart: { $gte: filter.dateStart, $lte: filter.dateEnd } },
+            { dateEnd: { $gte: filter.dateStart, $lte: filter.dateEnd } },
+          ],
+        })
+        .populate<Pick<ReservationDocument, 'hotelId'>>('hotelId')
+        .populate<Pick<ReservationDocument, 'roomId'>>('roomId')
+        .exec();
+      return reservations.map((reservation) => ({
+        startDate: reservation.dateStart.toDateString(),
+        endDate: reservation.dateEnd.toDateString(),
+        hotelRoom: {
+          description:
+            'description' in reservation.roomId
+              ? reservation.roomId.description
+              : '',
+          images:
+            'images' in reservation.roomId ? reservation.roomId.images : [],
+        },
+        hotel: {
+          title:
+            'title' in reservation.hotelId ? reservation.hotelId.title : '',
+          description:
+            'description' in reservation.hotelId
+              ? reservation.hotelId.description
+              : '',
+        },
+      }));
     } catch (e) {
       console.error(e);
       throw new HttpException(
@@ -173,7 +200,24 @@ export class ReservationsService implements IReservationService {
     }
   }
 
-  async removeReservation(id: string): Promise<void> {
+  async removeReservation(
+    id: IReservation['_id'],
+    userId: IUser['_id'],
+  ): Promise<void> {
+    const reservation = await this.reservationModel.findOne({
+      id,
+      userId,
+    });
+    if (!reservation) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          error:
+            'Бронь с таким ИД не существует или не привязана к данному пользователю',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     await this.reservationModel.deleteOne({ _id: id });
   }
 

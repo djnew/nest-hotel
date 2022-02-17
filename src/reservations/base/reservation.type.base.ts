@@ -22,11 +22,11 @@ export interface IReservation {
   dateStart: Date;
   dateEnd: Date;
   userId: Brand<ID, IUser>;
-  hotelId: Brand<ID, IHotel>;
-  roomId: Brand<ID, IRoom>;
+  hotelId: Brand<ID, IHotel> | IHotelInSearchRoomResponse;
+  roomId: Brand<ID, IRoom> | ISearchRoomResponse;
 }
 
-export interface ISaveReservationResponse {
+export interface IReservationResponse {
   hotel: IHotelInSearchRoomResponse;
   hotelRoom: ISearchRoomResponse;
   startDate: string;

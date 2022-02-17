@@ -31,6 +31,14 @@ export class UsersController {
     return this.usersService.findAll(params);
   }
 
+  @Get('manager/users')
+  @Roles(UserRole.Manager)
+  @UseGuards(LoginGuard)
+  findAllManager(@Req() req, @Body() params: SearchUserParams) {
+    console.log(req.user);
+    return this.usersService.findAll(params);
+  }
+
   @Post('/admin/users')
   createUser(@Body() params: CreateUserDto) {
     return this.usersService.create(params);

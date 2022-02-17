@@ -11,6 +11,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { User } from 'src/users/entities/user.entity';
 import { UsersFilterService } from 'src/users/service/users-filter.service';
 import { make } from 'ts-brand';
+import { IUserService } from '../base/users.service.base';
 import {
   IUser,
   IUserResponse,
@@ -18,7 +19,6 @@ import {
   UserDocument,
   UserRole,
 } from '../base/users.types.base';
-import { IUserService } from '../base/users.service.base';
 
 @Injectable()
 export class UsersService implements IUserService {
@@ -107,6 +107,7 @@ export class UsersService implements IUserService {
       throw new NotFoundException();
     }
   }
+
   makeUserId(id: string): IUser['_id'] {
     return this.makeId(id);
   }

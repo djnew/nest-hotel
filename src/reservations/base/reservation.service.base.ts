@@ -1,8 +1,8 @@
+import { IUser } from '../../users/base/users.types.base';
 import { ReservationDto } from '../dto/reservation.dto';
 import {
   IReservation,
-  ISaveReservationResponse,
-  ReservationDocument,
+  IReservationResponse,
   ReservationSearchOptions,
 } from './reservation.type.base';
 
@@ -11,13 +11,16 @@ export const I_RESERVATION_SERVICE: unique symbol = Symbol(
 );
 
 export interface IReservationService {
-  addReservation(data: ReservationDto): Promise<ISaveReservationResponse>;
+  addReservation(data: ReservationDto): Promise<IReservationResponse>;
 
-  removeReservation(id: string): Promise<void>;
+  removeReservation(
+    id: IReservation['_id'],
+    userId: IUser['_id'],
+  ): Promise<void>;
 
   getReservations(
     filter: ReservationSearchOptions,
-  ): Promise<ReservationDocument[]>;
+  ): Promise<IReservationResponse[]>;
 
   makeReservationId(id: string): IReservation['_id'];
 }
