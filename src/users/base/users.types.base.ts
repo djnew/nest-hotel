@@ -22,6 +22,14 @@ export interface IUserResponse {
   email: string;
   name: string;
   role?: string;
+  contactPhone?: string;
+}
+
+export interface IChatUserResponse {
+  id: ID;
+  name: string;
+  email?: string;
+  contactPhone?: string;
 }
 
 export type UserDocument = IUser & Document;

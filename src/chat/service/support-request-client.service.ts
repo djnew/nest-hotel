@@ -1,36 +1,75 @@
-import { Injectable } from '@nestjs/common';
-import { ID } from '../../types/types';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import dayjs from 'dayjs';
+import { IUser } from '../../users/base/users.types.base';
 import {
   CreateSupportRequestDto,
-  MarkMessagesAsReadDto,
-} from '../dto/chat-request.dto';
-import { MessageDocument } from '../entities/message.entity';
-import { SupportRequestDocument } from '../entities/support-request.entity';
-
-export const I_SUPPORT_REQUEST_CLIENT_SERVICE =
-  'I_SUPPORT_REQUEST_CLIENT_SERVICE';
-
-export interface ISupportRequestClientService {
-  createSupportRequest(
-    data: CreateSupportRequestDto,
-  ): Promise<SupportRequestDocument>;
-  markMessagesAsRead(params: MarkMessagesAsReadDto);
-  getUnreadCount(supportRequest: ID): Promise<MessageDocument[]>;
-}
+  ISupportRequest,
+  ISupportRequestResponse,
+  MessagesMarkMessagesAsRead,
+} from '../base/chat.types.base';
+import { ISupportRequestClientService } from '../base/support-request-client.service.base';
+import { MessagesRepository } from '../repository/messages.repository';
+import { SupportRequestsRepository } from '../repository/support-requests.repository';
 
 @Injectable()
 export class SupportRequestClientService
   implements ISupportRequestClientService
 {
-  createSupportRequest(
+  constructor(
+    private readonly messagesRepository: MessagesRepository,
+    private readonly supportRequestRepository: SupportRequestsRepository,
+  ) {}
+
+  async createSupportRequest(
     data: CreateSupportRequestDto,
-  ): Promise<SupportRequestDocument> {
-    return Promise.resolve(undefined);
+  ): Promise<ISupportRequestResponse> {
+    const supportRequest = await this.supportRequestRepository.create(data);
+    await this.messagesRepository.create({
+      author: data.user,
+      text: data.text,
+      supportRequest: supportRequest.id,
+    });
+
+    return {
+      id: supportRequest.id,
+      createAt: supportRequest.createdAt.toDateString(),
+      isActive: supportRequest.isActive,
+      hasNewMessages: false,
+    };
   }
 
-  getUnreadCount(supportRequest: ID): Promise<MessageDocument[]> {
-    return Promise.resolve([]);
+  async checkAccess(id: ISupportRequest['_id'], userId: IUser['_id']) {
+    const supportRequest = await this.supportRequestRepository.getById(id);
+    return supportRequest.user === userId;
   }
 
-  markMessagesAsRead(params: MarkMessagesAsReadDto) {}
+  async getUnreadCount(id: ISupportRequest['_id']): Promise<number> {
+    const supportRequest = await this.supportRequestRepository.getById(id);
+
+    return this.messagesRepository.countMessageByFilter({
+      id: supportRequest.messages,
+      author: { $ne: supportRequest.user },
+      readAt: null,
+    });
+  }
+
+  async markMessagesAsRead(
+    id: ISupportRequest['_id'],
+  ): Promise<MessagesMarkMessagesAsRead> {
+    const supportRequest = await this.supportRequestRepository.getById(id);
+
+    await this.messagesRepository.updateMany(
+      {
+        id: supportRequest.messages,
+        author: { $ne: supportRequest.user },
+        readAt: null,
+      },
+      {
+        readAt: dayjs(),
+      },
+    );
+    return {
+      success: true,
+    };
+  }
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
 import { CommandModule } from 'nestjs-command';
 import { AppController } from './app.controller';
@@ -15,6 +16,7 @@ import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     PassportModule.register({
       defaultStrategy: 'local',
       session: true,

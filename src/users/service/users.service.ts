@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -19,19 +20,19 @@ import {
   UserDocument,
   UserRole,
 } from '../base/users.types.base';
+import { UsersRepository } from '../repository/users.repository';
 
 @Injectable()
 export class UsersService implements IUserService {
   private logger: Logger = new Logger('UsersService');
-  private readonly makeId;
 
   constructor(
     @InjectConnection() private connection: Connection,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @Inject(UsersRepository)
+    private readonly usersRepository: UsersRepository,
     private readonly filterService: UsersFilterService,
-  ) {
-    this.makeId = make<IUser['_id']>();
-  }
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<IUserResponse> {
     const userRoles = Object.values(UserRole) as string[];
@@ -43,20 +44,11 @@ export class UsersService implements IUserService {
       );
       throw new BadRequestException();
     }
-    const passwordHash = await bcrypt.hash(createUserDto.password, 10);
-    const userParams: IUser = {
-      email: createUserDto.email,
-      passwordHash,
-      name: createUserDto.name,
-      contactPhone: createUserDto.contactPhone,
-      role: createUserDto.role,
-    };
-    const newUser = new this.userModel(userParams);
-    try {
-      const { id, email, name } = await newUser.save();
+    const user = await this.usersRepository.create(createUserDto);
+    if (user) {
+      const { id, email, name } = user;
       return { id, email, name };
-    } catch (e) {
-      this.logger.error(e);
+    } else {
       throw new BadRequestException();
     }
   }
@@ -66,12 +58,7 @@ export class UsersService implements IUserService {
       this.filterService.createUserListFilter(params);
 
     try {
-      const userList = await this.userModel
-        .find(filter)
-        .limit(limit)
-        .skip(offset)
-        .select('-__v')
-        .exec();
+      const userList = await this.usersRepository.search(filter, limit, offset);
       return userList.map((user) => ({
         id: user._id,
         name: user.name,
@@ -84,9 +71,8 @@ export class UsersService implements IUserService {
   }
 
   async findById(id: IUser['_id']): Promise<IUserResponse> {
-    this.logger.log('findById', id);
     try {
-      const user = await this.userModel.findOne({ _id: id }).exec();
+      const user = await this.usersRepository.getById(id);
       return {
         id: user._id,
         name: user.name,
@@ -100,15 +86,11 @@ export class UsersService implements IUserService {
   }
 
   async findByEmail(email: string): Promise<UserDocument> {
-    try {
-      return await this.userModel.findOne({ email: email }).exec();
-    } catch (e) {
-      this.logger.error(e);
+    const user = await this.usersRepository.getOneByFilter({ email: email });
+    if (!user) {
       throw new NotFoundException();
+    } else {
+      return user;
     }
-  }
-
-  makeUserId(id: string): IUser['_id'] {
-    return this.makeId(id);
   }
 }

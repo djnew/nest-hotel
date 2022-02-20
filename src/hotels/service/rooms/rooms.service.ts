@@ -1,16 +1,15 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import * as fs from 'fs';
 import { Model } from 'mongoose';
+import * as path from 'path';
 import { Room } from 'src/hotels/entities/room.entity';
 import { RoomsFilterService } from 'src/hotels/service/rooms/rooms-filter.service';
-import * as fs from 'fs';
-import * as path from 'path';
 import { make } from 'ts-brand';
 import { IHotelInSearchRoomResponse } from '../../base/hotels.types.base';
 import { IHotelRoomsService } from '../../base/rooms.service.base';
@@ -21,31 +20,24 @@ import {
   RoomDocument,
   SearchRoomsParams,
 } from '../../base/rooms.types.base';
+import { RoomsRepository } from '../../repository/rooms.repository';
 import { HotelsService } from '../hotels/hotels.service';
 
 @Injectable()
 export class RoomsService implements IHotelRoomsService {
-  private readonly makeId;
   private logger: Logger = new Logger('RoomsService');
 
   constructor(
     @InjectModel(Room.name) private readonly roomModel: Model<RoomDocument>,
-    @Inject(RoomsFilterService) private readonly roomFilter: RoomsFilterService,
-    @Inject(HotelsService) private readonly hotelService: HotelsService,
-  ) {
-    this.makeId = make<IRoom['_id']>();
-  }
+    private readonly roomFilter: RoomsFilterService,
+    private readonly hotelService: HotelsService,
+    private readonly roomRepository: RoomsRepository,
+  ) {}
 
   async create(data: Partial<IRoom>): Promise<ICreateRoomResponse> {
-    const newRoom = new this.roomModel(data);
-    try {
-      await newRoom.save();
-      const room: RoomDocument & { hotel: IHotelInSearchRoomResponse } =
-        await this.roomModel
-          .findById(newRoom.id)
-          .populate<{ hotel: IHotelInSearchRoomResponse }>('hotel')
-          .orFail()
-          .exec();
+    const newRoom = await this.roomRepository.create(data);
+    if (newRoom) {
+      const room = await this.roomRepository.getById(newRoom.id);
       return {
         id: room.id,
         description: room.description,
@@ -57,8 +49,7 @@ export class RoomsService implements IHotelRoomsService {
           description: room.hotel.description,
         },
       };
-    } catch (e) {
-      console.error(e);
+    } else {
       throw new BadRequestException();
     }
   }
@@ -73,13 +64,8 @@ export class RoomsService implements IHotelRoomsService {
     if (isEnabled) {
       findParams['isEnabled'] = true;
     }
-    try {
-      const room = await this.roomModel
-        .findOne(findParams)
-        .populate<Pick<RoomDocument, 'hotel'>>({
-          path: 'hotel',
-        })
-        .exec();
+    const room = await this.roomRepository.getOneByFilter(findParams);
+    if (room) {
       return {
         id: room.id,
         images: room.images,
@@ -91,96 +77,76 @@ export class RoomsService implements IHotelRoomsService {
             'description' in room.hotel ? room.hotel.description : '',
         },
       };
-    } catch (e) {
-      console.error(e);
+    } else {
       throw new NotFoundException();
     }
   }
 
   async search(params: SearchRoomsParams): Promise<ISearchRoomResponse[]> {
-    try {
-      this.logger.debug(JSON.stringify(params));
-      const { filter, limit, offset } =
-        this.roomFilter.createRoomsListFilter(params);
+    this.logger.debug(JSON.stringify(params));
+    const { filter, limit, offset } =
+      this.roomFilter.createRoomsListFilter(params);
 
-      let hotels: IHotelInSearchRoomResponse[];
-      if ('hotel' in filter || 'title' in filter) {
-        hotels = await this.hotelService.searchHotelByCustomFilter(filter);
-        if (!hotels.length) {
-          throw new NotFoundException();
-        }
-      }
-
-      const roomFilterEnabled = {};
-      if ('isEnabled' in filter) {
-        roomFilterEnabled['isEnabled'] = filter.isEnabled;
-      }
-      this.logger.debug(hotels);
-      if (hotels) {
-        roomFilterEnabled['hotel'] = hotels.map((hotel) => hotel.id);
-      }
-
-      const rooms = await this.roomModel
-        .find(roomFilterEnabled)
-        .populate<Pick<RoomDocument, 'hotel'>>({
-          path: 'hotel',
-        })
-        .limit(limit)
-        .skip(offset);
-
-      if (!rooms.length) {
+    let hotels: IHotelInSearchRoomResponse[];
+    if ('hotel' in filter || 'title' in filter) {
+      hotels = await this.hotelService.searchHotelByCustomFilter(filter);
+      if (!hotels.length) {
         throw new NotFoundException();
       }
+    }
 
-      return rooms.map((room) => ({
-        id: room.id,
-        images: room.images,
-        description: room.description,
-        hotel: {
-          id: 'id' in room.hotel ? room.hotel.id : '',
-          title: 'title' in room.hotel ? room.hotel.title : '',
-        },
-      }));
-    } catch (e) {
-      console.error(e);
+    const roomFilterEnabled = {};
+    if ('isEnabled' in filter) {
+      roomFilterEnabled['isEnabled'] = filter.isEnabled;
+    }
+    this.logger.debug(hotels);
+    if (hotels) {
+      roomFilterEnabled['hotel'] = hotels.map((hotel) => hotel.id);
+    }
+
+    const rooms = await this.roomRepository.search(filter, offset, limit);
+
+    if (!rooms.length) {
       throw new NotFoundException();
     }
+
+    return rooms.map((room) => ({
+      id: room.id,
+      images: room.images,
+      description: room.description,
+      hotel: {
+        id: 'id' in room.hotel ? room.hotel.id : '',
+        title: 'title' in room.hotel ? room.hotel.title : '',
+      },
+    }));
   }
 
   async update(
     id: IRoom['_id'],
     data: Partial<IRoom>,
   ): Promise<ICreateRoomResponse> {
-    try {
-      const book = await this.findById(id);
-      book.images.forEach((image) => {
-        if (!data.images.includes(image)) {
-          fs.rmSync(path.resolve('../../../', image));
-        }
-      });
-      await this.roomModel.updateOne({ id }, data);
-      const roomUpdated = await this.roomModel
-        .findById(id)
-        .populate<{ hotel: IHotelInSearchRoomResponse }>('hotel')
-        .orFail()
-        .exec();
-      return {
-        id: roomUpdated.id,
-        description: roomUpdated.description,
-        images: roomUpdated.images,
-        isEnabled: roomUpdated.isEnabled,
-        hotel: {
-          id: roomUpdated.hotel.id,
-          title: roomUpdated.hotel.title,
-          description: roomUpdated.hotel.description,
-        },
-      };
-    } catch (e) {
+    const book = await this.roomRepository.getById(id);
+    book.images.forEach((image) => {
+      if (!data.images.includes(image)) {
+        fs.rmSync(path.resolve('../../../', image));
+      }
+    });
+    const updated = await this.roomRepository.update(id, data);
+    if (!updated) {
       throw new BadRequestException();
     }
-  }
+    const roomUpdated = await this.roomRepository.getById(id);
 
-  makeRoomId(id: string): IRoom['_id'] {
-    return this.makeId(id);
+    return {
+      id: roomUpdated.id,
+      description: roomUpdated.description,
+      images: roomUpdated.images,
+      isEnabled: roomUpdated.isEnabled,
+      hotel: {
+        id: roomUpdated.hotel.id,
+        title: roomUpdated.hotel.title,
+        description: roomUpdated.hotel.description,
+      },
+    };
   }
 }

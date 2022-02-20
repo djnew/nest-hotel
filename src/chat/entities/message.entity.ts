@@ -1,25 +1,19 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-import { ID } from '../../types/types';
-
-export type MessageDocument = IMessage & Document;
-
-export interface IMessage {
-  _id?: ID;
-  author: ID;
-  sentAt: Date;
-  text?: string;
-  readAt: Date;
-}
+import { Schema as MongooseSchema } from 'mongoose';
+import { IUser } from '../../users/base/users.types.base';
+import { IMessage } from '../base/chat.types.base';
 
 @Schema()
 export class Message implements IMessage {
   @Prop({ required: true, type: MongooseSchema.Types.ObjectId })
-  author: ID;
-  @Prop({ required: true })
+  author: IUser['_id'];
+
+  @Prop({ optional: true })
   readAt: Date;
+
   @Prop({ required: true })
   sentAt: Date;
+
   @Prop({ optional: true })
   text?: string;
 }

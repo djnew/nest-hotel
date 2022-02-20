@@ -1,49 +1,148 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import {
+  HotelEmitterEvents,
+  HotelEventEmitter,
+} from '../../event-emitter/emitter';
 import { ID } from '../../types/types';
-import { GetChatListParams, SendMessageDto } from '../dto/chat-request.dto';
-import { MessageDocument } from '../entities/message.entity';
-import { SupportRequestDocument } from '../entities/support-request.entity';
+import {
+  I_USERS_REPOSITORY,
+  IUsersRepository,
+} from '../../users/base/users.repository.base';
+import {
+  I_USER_SERVICE,
+  IUserService,
+} from '../../users/base/users.service.base';
 
-export const I_SUPPORT_REQUEST_SERVICE = 'I_SUPPORT_REQUEST_SERVICE';
-
-export interface ISupportRequestService {
-  findSupportRequests(
-    params: GetChatListParams,
-  ): Promise<SupportRequestDocument[]>;
-  sendMessage(data: SendMessageDto): Promise<MessageDocument>;
-  getMessages(supportRequest: ID): Promise<MessageDocument[]>;
-  subscribe(
-    handler: (
-      supportRequest: SupportRequestDocument,
-      message: MessageDocument,
-    ) => void,
-  ): () => void;
-}
+import {
+  GetChatListParams,
+  IMessageResponse,
+  ISupportRequest,
+  ISupportRequestResponse,
+  MessageDocument,
+  SendMessageDto,
+  SupportRequestDocument,
+  SupportRequestsSubscribers,
+} from '../base/chat.types.base';
+import { ISupportRequestService } from '../base/support-request.service.base';
+import { SupportRequest } from '../entities/support-request.entity';
+import { MessagesRepository } from '../repository/messages.repository';
+import { SupportRequestsRepository } from '../repository/support-requests.repository';
+import { SupportRequestClientService } from './support-request-client.service';
+import { SupportRequestEmployeeService } from './support-request-employee.service';
+import { SupportRequestFilterService } from './support-request-filter.service';
 
 @Injectable()
 export class SupportRequestService implements ISupportRequestService {
-  findSupportRequests(
+  constructor(
+    @InjectModel(SupportRequest.name)
+    private readonly supportRequestFilter: SupportRequestFilterService,
+    @Inject(I_USERS_REPOSITORY)
+    private readonly usersRepository: IUsersRepository,
+    @Inject(I_USER_SERVICE)
+    private readonly userService: IUserService,
+    private readonly supportRequestClient: SupportRequestClientService,
+    private readonly supportRequestEmployee: SupportRequestEmployeeService,
+    private readonly messagesRepository: MessagesRepository,
+    private readonly supportRequestsRepository: SupportRequestsRepository,
+  ) {}
+
+  async findSupportRequests(
     params: GetChatListParams,
-  ): Promise<SupportRequestDocument[]> {
-    return Promise.resolve([]);
+  ): Promise<ISupportRequestResponse[]> {
+    const { filter, limit, offset } =
+      this.supportRequestFilter.createRequestListFilter(params);
+
+    const supportRequests = await this.supportRequestsRepository.search(
+      filter,
+      offset,
+      limit,
+    );
+
+    if ('user' in params) {
+      return supportRequests.map((supportRequest) => ({
+        id: supportRequest.id,
+        createAt: supportRequest.createdAt.toDateString(),
+        isActive: supportRequest.isActive,
+        hasNewMessages: Boolean(
+          this.supportRequestClient.getUnreadCount(
+            this.supportRequestsRepository.makeId(supportRequest.id),
+          ),
+        ),
+      }));
+    } else {
+      return supportRequests.map((supportRequest) => ({
+        id: supportRequest.id,
+        createAt: supportRequest.createdAt.toDateString(),
+        isActive: supportRequest.isActive,
+        hasNewMessages: Boolean(
+          this.supportRequestEmployee.getUnreadCount(
+            this.supportRequestsRepository.makeId(supportRequest.id),
+          ),
+        ),
+        client: {
+          id: 'id' in supportRequest.user ? supportRequest.user.id : '',
+          name: 'name' in supportRequest.user ? supportRequest.user.name : '',
+          email:
+            'email' in supportRequest.user ? supportRequest.user.email : '',
+          contactPhone:
+            'contactPhone' in supportRequest.user
+              ? supportRequest.user.contactPhone
+              : '',
+        },
+      }));
+    }
   }
 
-  getMessages(supportRequest: ID): Promise<MessageDocument[]> {
-    return Promise.resolve([]);
+  async getMessages(id: ISupportRequest['_id']): Promise<IMessageResponse[]> {
+    const supportRequest = await this.supportRequestsRepository.getById(id);
+    const messages = await this.messagesRepository.search({
+      id: supportRequest.messages,
+    });
+    return messages.map((message) => ({
+      id: message.id,
+      createdAt: message.sentAt.toDateString(),
+      text: message.text,
+      readAt: message.readAt.toDateString(),
+      author: {
+        id: 'id' in message.author ? message.author.id : '',
+        name: 'name' in message.author ? message.author.name : '',
+      },
+    }));
   }
 
-  sendMessage(data: SendMessageDto): Promise<MessageDocument> {
-    return Promise.resolve(undefined);
+  async sendMessage(data: SendMessageDto): Promise<IMessageResponse> {
+    const message = await this.messagesRepository.create(data);
+    if (message) {
+      return {
+        id: message.id,
+        createdAt: message.sentAt.toDateString(),
+        text: message.text,
+        readAt: message.readAt.toDateString() || null,
+        author: await this.userService.findById(
+          this.usersRepository.makeId(message.author.toString()),
+        ),
+      };
+    } else {
+      throw new BadRequestException();
+    }
   }
 
-  subscribe(
-    handler: (
-      supportRequest: SupportRequestDocument,
-      message: MessageDocument,
-    ) => void,
-  ): () => void {
-    return function () {
-      return;
-    };
+  getSupportRequestById(id: ISupportRequest['_id']) {
+    return this.supportRequestsRepository.getById(id);
+  }
+
+  subscribe(handler: SupportRequestsSubscribers['fn']): () => void {
+    HotelEventEmitter.on(
+      HotelEmitterEvents.SEND_MESSAGE,
+      (supportRequest: ID, message: MessageDocument) => {
+        handler(supportRequest, message);
+      },
+    );
+    return;
+  }
+
+  unsubscribe(handler: SupportRequestsSubscribers['fn']): void {
+    HotelEventEmitter.off(HotelEmitterEvents.SEND_MESSAGE, handler);
   }
 }

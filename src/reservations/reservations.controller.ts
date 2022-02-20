@@ -13,9 +13,21 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { LoginGuard } from '../auth/guard/login.guard';
-import { I_USER_SERVICE, IUserService } from '../users/base/users.service.base';
+import {
+  I_ROOMS_REPOSITORY,
+  IRoomsRepository,
+} from '../hotels/base/rooms.repository.base';
+import {
+  I_USERS_REPOSITORY,
+  IUsersRepository,
+} from '../users/base/users.repository.base';
 import { UserRole } from '../users/base/users.types.base';
 import { Roles } from '../users/decorator/roles.decorator';
+import { IReservationCreate } from './base/reservation.type.base';
+import {
+  I_RESERVATIONS_REPOSITORY,
+  IReservationsRepository,
+} from './base/reservations.repository.base';
 import { ReservationSearchDto } from './dto/reservation-search.dto';
 import { ReservationDto } from './dto/reservation.dto';
 import { ReservationsService } from './service/reservations.service';
@@ -24,7 +36,12 @@ import { ReservationsService } from './service/reservations.service';
 export class ReservationsController {
   constructor(
     private readonly reservationsService: ReservationsService,
-    @Inject(I_USER_SERVICE) private readonly userService: IUserService,
+    @Inject(I_RESERVATIONS_REPOSITORY)
+    private readonly reservationRepository: IReservationsRepository,
+    @Inject(I_USERS_REPOSITORY)
+    private readonly usersRepository: IUsersRepository,
+    @Inject(I_ROOMS_REPOSITORY)
+    private readonly roomRepository: IRoomsRepository,
   ) {}
 
   @Post('client/reservations')
@@ -32,8 +49,14 @@ export class ReservationsController {
   @UseGuards(LoginGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   create(@Req() request, @Body() createReservationDto: ReservationDto) {
-    createReservationDto.userId = request.user.id;
-    return this.reservationsService.addReservation(createReservationDto);
+    const { endDate, startDate, hotelRoom } = createReservationDto;
+    const reservationCreateData: IReservationCreate = {
+      dateEnd: endDate,
+      dateStart: startDate,
+      userId: this.usersRepository.makeId(request.user.id),
+      roomId: this.roomRepository.makeId(hotelRoom),
+    };
+    return this.reservationsService.addReservation(reservationCreateData);
   }
 
   @Get('client/reservations/:userId')
@@ -46,7 +69,7 @@ export class ReservationsController {
     @Query() reservationSearch: ReservationSearchDto,
   ) {
     return this.reservationsService.getReservations({
-      user: this.userService.makeUserId(userId),
+      user: this.usersRepository.makeId(userId),
       dateEnd: reservationSearch.endDate,
       dateStart: reservationSearch.startDate,
     });
@@ -57,8 +80,8 @@ export class ReservationsController {
   @UseGuards(LoginGuard)
   remove(@Param('userId') userId: string, @Param('reservationId') id: string) {
     return this.reservationsService.removeReservation(
-      this.reservationsService.makeReservationId(id),
-      this.userService.makeUserId(userId),
+      this.reservationRepository.makeId(id),
+      this.usersRepository.makeId(userId),
     );
   }
 }

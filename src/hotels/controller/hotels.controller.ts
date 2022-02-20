@@ -1,24 +1,33 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
   UseGuards,
   UsePipes,
   ValidationPipe,
-  Get,
-  Query,
-  Param,
 } from '@nestjs/common';
-import { HotelsService } from 'src/hotels/service/hotels/hotels.service';
 import { CreateHotelDTO } from 'src/hotels/dto/create-hotel.dto';
+import { HotelsService } from 'src/hotels/service/hotels/hotels.service';
 import { LoginGuard } from '../../auth/guard/login.guard';
 import { UserRole } from '../../users/base/users.types.base';
 import { Roles } from '../../users/decorator/roles.decorator';
+import {
+  I_HOTELS_REPOSITORY,
+  IHotelsRepository,
+} from '../base/hotels.repository.base';
 import { SearchHotelsDTO } from '../dto/search-hotels.dto';
 
 @Controller('api')
 export class HotelsController {
-  constructor(private readonly hotelsService: HotelsService) {}
+  constructor(
+    private readonly hotelsService: HotelsService,
+    @Inject(I_HOTELS_REPOSITORY)
+    private readonly hotelRepository: IHotelsRepository,
+  ) {}
 
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
@@ -41,6 +50,6 @@ export class HotelsController {
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
   async getHotel(@Param('id') id: string) {
-    return this.hotelsService.findById(this.hotelsService.makeHotelId(id));
+    return this.hotelsService.findById(this.hotelRepository.makeId(id));
   }
 }

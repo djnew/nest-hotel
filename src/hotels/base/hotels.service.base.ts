@@ -1,5 +1,5 @@
 import { ID } from '../../types/types';
-import { IHotelInSearchRoomResponse, IHotel } from './hotels.types.base';
+import { IHotelInSearchRoomResponse } from './hotels.types.base';
 import { SearchRoomsParams } from './rooms.types.base';
 
 export const I_HOTELS_SERVICE: unique symbol = Symbol('IHotelsService');
@@ -12,8 +12,6 @@ export interface IHotelsService {
   search(
     params: Pick<IHotelInSearchRoomResponse, 'title'>,
   ): Promise<IHotelInSearchRoomResponse[]>;
-
-  makeHotelId(id: string): IHotel['_id'];
 }
 
 export interface IHotelServiceAdditionalMethods {

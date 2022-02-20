@@ -2,7 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
 import { IHotel } from '../../hotels/base/hotels.types.base';
 import { IRoom } from '../../hotels/base/rooms.types.base';
-import { ID } from '../../types/types';
 import { IUser } from '../../users/base/users.types.base';
 import { IReservation } from '../base/reservation.type.base';
 

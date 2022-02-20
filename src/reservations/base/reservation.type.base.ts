@@ -26,6 +26,13 @@ export interface IReservation {
   roomId: Brand<ID, IRoom> | ISearchRoomResponse;
 }
 
+export interface IReservationCreate {
+  dateStart: dayjs.Dayjs;
+  dateEnd: dayjs.Dayjs;
+  userId: Brand<ID, IUser>;
+  roomId: Brand<ID, IRoom>;
+}
+
 export interface IReservationResponse {
   hotel: IHotelInSearchRoomResponse;
   hotelRoom: ISearchRoomResponse;

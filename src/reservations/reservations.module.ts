@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HotelsModule } from '../hotels/hotels.module';
 import { UsersModule } from '../users/users.module';
 import { Reservation, ReservationScheme } from './entities/reservation.entity';
+import { ReservationsRepository } from './repository/reservations.repository';
 import { ReservationProvider } from './reservation.provider';
 import { ReservationsService } from './service/reservations.service';
 import { ReservationsController } from './reservations.controller';
@@ -16,7 +17,11 @@ import { ReservationsController } from './reservations.controller';
     HotelsModule,
   ],
   controllers: [ReservationsController],
-  providers: [ReservationsService, ...ReservationProvider],
+  providers: [
+    ReservationsService,
+    ReservationsRepository,
+    ...ReservationProvider,
+  ],
   exports: [...ReservationProvider],
 })
 export class ReservationsModule {}

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Post,
   Req,
@@ -11,12 +12,20 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/service/users.service';
 import { LocalAuthGuard } from '../../auth/guard/local-auth.guard';
 import { LoginGuard } from '../../auth/guard/login.guard';
+import {
+  I_USERS_REPOSITORY,
+  IUsersRepository,
+} from '../base/users.repository.base';
 import { SearchUserParams, UserRole } from '../base/users.types.base';
 import { Roles } from '../decorator/roles.decorator';
 
 @Controller('api')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    @Inject(I_USERS_REPOSITORY)
+    private readonly usersRepository: IUsersRepository,
+  ) {}
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -52,7 +61,7 @@ export class UsersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findById(this.usersService.makeUserId(id));
+    return this.usersService.findById(this.usersRepository.makeId(id));
   }
 
   @UseGuards(new LocalAuthGuard())

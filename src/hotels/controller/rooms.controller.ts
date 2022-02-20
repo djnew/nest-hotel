@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Post,
   Put,
@@ -20,6 +21,14 @@ import { LoginGuard } from '../../auth/guard/login.guard';
 import { editFileName, imageFileFilter } from '../../multer/multer.files';
 import { UserRole } from '../../users/base/users.types.base';
 import { Roles } from '../../users/decorator/roles.decorator';
+import {
+  I_HOTELS_REPOSITORY,
+  IHotelsRepository,
+} from '../base/hotels.repository.base';
+import {
+  I_ROOMS_REPOSITORY,
+  IRoomsRepository,
+} from '../base/rooms.repository.base';
 import { CreateRoomDTO } from '../dto/create-room.dto';
 import { SearchRoomsDTO } from '../dto/search-rooms.dto';
 import { HotelsService } from '../service/hotels/hotels.service';
@@ -29,6 +38,10 @@ export class RoomsController {
   constructor(
     private readonly roomsService: RoomsService,
     private readonly hotelService: HotelsService,
+    @Inject(I_HOTELS_REPOSITORY)
+    private readonly hotelRepository: IHotelsRepository,
+    @Inject(I_ROOMS_REPOSITORY)
+    private readonly roomRepository: IRoomsRepository,
   ) {}
 
   @Post('admin/hotel-rooms')
@@ -51,7 +64,7 @@ export class RoomsController {
     const { hotel: hotelId, ...params } = createRoomDto;
     return await this.roomsService.create({
       ...params,
-      hotel: this.hotelService.makeHotelId(hotelId),
+      hotel: this.hotelRepository.makeId(hotelId),
       isEnabled: true,
       images: images.map((image) => image.path),
     });
@@ -65,7 +78,7 @@ export class RoomsController {
 
   @Get('common/hotel-rooms/:id')
   async getRoom(@Param('id') id: string) {
-    return await this.roomsService.findById(this.roomsService.makeRoomId(id));
+    return await this.roomsService.findById(this.roomRepository.makeId(id));
   }
 
   @Put('admin/hotel-rooms/:id')
@@ -91,10 +104,10 @@ export class RoomsController {
     const updateParams = {
       ...params,
       images: [...images.map((image) => image.path), ...oldImages],
-      hotel: this.hotelService.makeHotelId(createRoomDto.hotel),
+      hotel: this.hotelRepository.makeId(createRoomDto.hotel),
     };
     return this.roomsService.update(
-      this.roomsService.makeRoomId(id),
+      this.roomRepository.makeId(id),
       updateParams,
     );
   }

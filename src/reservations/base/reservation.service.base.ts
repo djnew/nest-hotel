@@ -1,7 +1,7 @@
 import { IUser } from '../../users/base/users.types.base';
-import { ReservationDto } from '../dto/reservation.dto';
 import {
   IReservation,
+  IReservationCreate,
   IReservationResponse,
   ReservationSearchOptions,
 } from './reservation.type.base';
@@ -11,7 +11,7 @@ export const I_RESERVATION_SERVICE: unique symbol = Symbol(
 );
 
 export interface IReservationService {
-  addReservation(data: ReservationDto): Promise<IReservationResponse>;
+  addReservation(data: IReservationCreate): Promise<IReservationResponse>;
 
   removeReservation(
     id: IReservation['_id'],
@@ -21,6 +21,4 @@ export interface IReservationService {
   getReservations(
     filter: ReservationSearchOptions,
   ): Promise<IReservationResponse[]>;
-
-  makeReservationId(id: string): IReservation['_id'];
 }

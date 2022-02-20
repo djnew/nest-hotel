@@ -5,55 +5,48 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { make } from 'ts-brand';
+import {
+  I_HOTELS_REPOSITORY,
+  IHotelsRepository,
+} from '../../hotels/base/hotels.repository.base';
 import {
   I_HOTELS_SERVICE,
   IHotelsService,
 } from '../../hotels/base/hotels.service.base';
-import {
-  IHotel,
-  IHotelInSearchRoomResponse,
-} from '../../hotels/base/hotels.types.base';
+import { IHotel } from '../../hotels/base/hotels.types.base';
 import {
   I_ROOMS_SERVICE,
   IHotelRoomsService,
 } from '../../hotels/base/rooms.service.base';
-import {
-  IRoom,
-  ISearchRoomResponse,
-  RoomDocument,
-} from '../../hotels/base/rooms.types.base';
+import { IRoom } from '../../hotels/base/rooms.types.base';
 import { IUser } from '../../users/base/users.types.base';
 import { IReservationService } from '../base/reservation.service.base';
 import {
   IReservation,
+  IReservationCreate,
   IReservationResponse,
   ReservationDocument,
   ReservationSearchOptions,
 } from '../base/reservation.type.base';
-import { ReservationDto } from '../dto/reservation.dto';
-import { Reservation } from '../entities/reservation.entity';
+import { ReservationsRepository } from '../repository/reservations.repository';
 
 @Injectable()
 export class ReservationsService implements IReservationService {
-  private logger: Logger = new Logger('RoomsService');
-  private readonly makeId;
+  private logger: Logger = new Logger('ReservationsService');
 
   constructor(
-    @InjectModel(Reservation.name)
-    private readonly reservationModel: Model<ReservationDocument>,
-    @Inject(I_HOTELS_SERVICE)
-    private readonly hotelService: IHotelsService,
     @Inject(I_ROOMS_SERVICE)
     private readonly roomService: IHotelRoomsService,
-  ) {
-    this.makeId = make<IReservation['_id']>();
-  }
+    @Inject(ReservationsRepository)
+    private readonly reservationsRepository: ReservationsRepository,
+    @Inject(I_HOTELS_REPOSITORY)
+    private readonly hotelRepository: IHotelsRepository,
+  ) {}
 
-  async addReservation(data: ReservationDto): Promise<IReservationResponse> {
-    if (!data.startDate.isValid() || !data.endDate.isValid()) {
+  async addReservation(
+    data: IReservationCreate,
+  ): Promise<IReservationResponse> {
+    if (!data.dateStart.isValid() || !data.dateEnd.isValid()) {
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
@@ -64,35 +57,29 @@ export class ReservationsService implements IReservationService {
     }
 
     try {
-      const room = await this.roomService.findById(
-        this.roomService.makeRoomId(data.hotelRoom),
-      );
+      const room = await this.roomService.findById(data.roomId);
       this.logger.debug(room);
       if (room) {
+        const hotelId = this.hotelRepository.makeId(room.hotel.id);
         const reservation: ReservationDocument[] =
           await this.searchReservationForDates(
-            this.roomService.makeRoomId(data.hotelRoom),
-            this.hotelService.makeHotelId(room.hotel.id),
-            data.startDate.format('YYYY-MM-DD'),
-            data.endDate.format('YYYY-MM-DD'),
+            data.roomId,
+            hotelId,
+            data.dateStart.format('YYYY-MM-DD'),
+            data.dateEnd.format('YYYY-MM-DD'),
           );
 
         if (!reservation.length) {
-          const newReservation = new this.reservationModel({
-            roomId: data.hotelRoom,
+          const newReservation = await this.reservationsRepository.create({
+            roomId: data.roomId,
             userId: data.userId,
-            hotelId: room.hotel.id,
-            dateEnd: data.endDate,
-            dateStart: data.startDate,
+            hotelId,
+            dateEnd: data.dateEnd.toDate(),
+            dateStart: data.dateStart.toDate(),
           });
-          await newReservation.save();
-          const reservationWithHotelAndRoom = await this.reservationModel
-            .findOne({
-              id: newReservation.id,
-            })
-            .populate<{ hotelId: IHotelInSearchRoomResponse }>('hotelId')
-            .populate<{ roomId: ISearchRoomResponse }>('roomId')
-            .exec();
+
+          const reservationWithHotelAndRoom =
+            await this.reservationsRepository.getById(newReservation.id);
           this.logger.debug(reservationWithHotelAndRoom);
           return {
             startDate: reservationWithHotelAndRoom.dateStart.toDateString(),
@@ -134,20 +121,24 @@ export class ReservationsService implements IReservationService {
     dateStart: string,
     dateEnd: string,
   ): Promise<ReservationDocument[]> {
-    return this.reservationModel.find({
+    const filter = {
       roomId: roomId,
       hotelId: hotelId,
       $or: [
         { dateStart: { $gte: dateStart, $lte: dateEnd } },
         { dateEnd: { $gte: dateStart, $lte: dateEnd } },
       ],
-    });
+    };
+    return this.reservationsRepository.search(filter);
   }
 
   async getReservations(
-    filter: ReservationSearchOptions,
+    searchOptions: ReservationSearchOptions,
   ): Promise<IReservationResponse[]> {
-    if (!filter.dateStart.isValid() || !filter.dateStart.isValid()) {
+    if (
+      !searchOptions.dateStart.isValid() ||
+      !searchOptions.dateStart.isValid()
+    ) {
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
@@ -157,17 +148,24 @@ export class ReservationsService implements IReservationService {
       );
     }
     try {
-      const reservations = await this.reservationModel
-        .find({
-          userId: filter.user,
-          $or: [
-            { dateStart: { $gte: filter.dateStart, $lte: filter.dateEnd } },
-            { dateEnd: { $gte: filter.dateStart, $lte: filter.dateEnd } },
-          ],
-        })
-        .populate<Pick<ReservationDocument, 'hotelId'>>('hotelId')
-        .populate<Pick<ReservationDocument, 'roomId'>>('roomId')
-        .exec();
+      const filter = {
+        userId: searchOptions.user,
+        $or: [
+          {
+            dateStart: {
+              $gte: searchOptions.dateStart,
+              $lte: searchOptions.dateEnd,
+            },
+          },
+          {
+            dateEnd: {
+              $gte: searchOptions.dateStart,
+              $lte: searchOptions.dateEnd,
+            },
+          },
+        ],
+      };
+      const reservations = await this.reservationsRepository.search(filter);
       return reservations.map((reservation) => ({
         startDate: reservation.dateStart.toDateString(),
         endDate: reservation.dateEnd.toDateString(),
@@ -204,10 +202,7 @@ export class ReservationsService implements IReservationService {
     id: IReservation['_id'],
     userId: IUser['_id'],
   ): Promise<void> {
-    const reservation = await this.reservationModel.findOne({
-      id,
-      userId,
-    });
+    const reservation = await this.reservationsRepository.getById(id, userId);
     if (!reservation) {
       throw new HttpException(
         {
@@ -218,10 +213,6 @@ export class ReservationsService implements IReservationService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    await this.reservationModel.deleteOne({ _id: id });
-  }
-
-  makeReservationId(id: string): IReservation['_id'] {
-    return this.makeId(id);
+    await this.reservationsRepository.remove(id);
   }
 }
