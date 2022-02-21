@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import * as dayjs from 'dayjs';
 
 export class ReservationSearchDto {
@@ -12,5 +12,6 @@ export class ReservationSearchDto {
   endDate: dayjs.Dayjs;
 
   @IsString()
+  @IsOptional()
   user: string;
 }

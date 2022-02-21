@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Req,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
@@ -35,16 +36,14 @@ export class UsersController {
   @Get('admin/users')
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
-  findAll(@Req() req, @Body() params: SearchUserParams) {
-    console.log(req.user);
+  findAll(@Req() req, @Query() params: SearchUserParams) {
     return this.usersService.findAll(params);
   }
 
   @Get('manager/users')
   @Roles(UserRole.Manager)
   @UseGuards(LoginGuard)
-  findAllManager(@Req() req, @Body() params: SearchUserParams) {
-    console.log(req.user);
+  findAllManager(@Req() req, @Query() params: SearchUserParams) {
     return this.usersService.findAll(params);
   }
 

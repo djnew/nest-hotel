@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PassportSerializer } from '@nestjs/passport';
+import { use } from 'passport';
 import {
   I_USERS_REPOSITORY,
   IUsersRepository,
@@ -24,12 +25,13 @@ export class LocalSerializer extends PassportSerializer {
   }
 
   serializeUser(user: UserDocument, done: CallableFunction) {
-    const { id, role, name } = user;
+    const { _id: id, role, name } = user;
     done(null, JSON.stringify({ id, role, name }));
   }
 
   async deserializeUser(userJSON: string, done: CallableFunction) {
     const user = JSON.parse(userJSON);
+    console.log(user);
     return await this.userService
       .findById(this.usersRepository.makeId(user.id))
       .then((user) => done(null, user))

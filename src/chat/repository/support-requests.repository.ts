@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { make } from 'ts-brand';
 import {
   CreateSupportRequestDto,
+  IMessage,
   ISupportRequest,
   SupportRequestDocument,
 } from '../base/chat.types.base';
@@ -32,7 +33,7 @@ export class SupportRequestsRepository implements ISupportRequestsRepository {
   ): Promise<SupportRequestDocument> {
     try {
       const supportRequest = new this.supportRequestModel({
-        params,
+        user: params.user,
         isActive: true,
         createdAt: dayjs(),
       });
@@ -42,6 +43,13 @@ export class SupportRequestsRepository implements ISupportRequestsRepository {
       this.logger.error(e);
       return null;
     }
+  }
+
+  async updateMessage(id: ISupportRequest['_id'], messages: IMessage['_id'][]) {
+    await this.supportRequestModel.updateOne(
+      { _id: id },
+      { messages: messages },
+    );
   }
 
   async getById(id: ISupportRequest['_id']): Promise<SupportRequestDocument> {

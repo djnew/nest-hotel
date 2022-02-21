@@ -100,10 +100,15 @@ export class RoomsController {
     @Body() createRoomDto: CreateRoomDTO,
   ) {
     const { images: oldImages, ...params } = createRoomDto;
-
+    let img;
+    if (typeof oldImages === 'object') {
+      img = oldImages;
+    } else {
+      img = [oldImages];
+    }
     const updateParams = {
       ...params,
-      images: [...images.map((image) => image.path), ...oldImages],
+      images: [...images.map((image) => image.path), ...img],
       hotel: this.hotelRepository.makeId(createRoomDto.hotel),
     };
     return this.roomsService.update(

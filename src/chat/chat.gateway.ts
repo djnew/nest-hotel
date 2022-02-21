@@ -33,6 +33,10 @@ export class ChatGateway {
     @MessageBody() body: SubscribeDTO,
     @ConnectedSocket() client: Socket,
   ) {
+    client.emit('chat.msgToClient', {
+      name: 'server',
+      text: `subscribe: ${client.id}, chatId ${body.chatId}`,
+    });
     const subscribeHandler = (supportRequest: ID, message: MessageDocument) => {
       if (body.chatId === supportRequest)
         client.emit('sendMessage', {
@@ -68,6 +72,10 @@ export class ChatGateway {
     @MessageBody() body: SubscribeDTO,
     @ConnectedSocket() client: Socket,
   ) {
+    client.emit('chat.msgToClient', {
+      name: 'server',
+      text: `unsubscribe: ${client.id}, chatId ${body.chatId}`,
+    });
     const subscribe = this.subscribers.find(
       (s) => s.wsClientId === client.id && s.supportRequestId === body.chatId,
     );

@@ -63,7 +63,7 @@ export class RoomsRepository implements IRoomsRepository {
 
   async update(id: IRoom['_id'], data: Partial<IRoom>) {
     try {
-      await this.roomModel.updateOne({ id }, data);
+      await this.roomModel.updateOne({ _id: id }, data);
       return true;
     } catch (e) {
       this.logger.error(e);

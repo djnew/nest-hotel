@@ -153,19 +153,22 @@ export class ReservationsService implements IReservationService {
         $or: [
           {
             dateStart: {
-              $gte: searchOptions.dateStart,
-              $lte: searchOptions.dateEnd,
+              $gte: searchOptions.dateStart.format('YYYY-MM-DD'),
+              $lte: searchOptions.dateEnd.format('YYYY-MM-DD'),
             },
           },
           {
             dateEnd: {
-              $gte: searchOptions.dateStart,
-              $lte: searchOptions.dateEnd,
+              $gte: searchOptions.dateStart.format('YYYY-MM-DD'),
+              $lte: searchOptions.dateEnd.format('YYYY-MM-DD'),
             },
           },
         ],
       };
+
       const reservations = await this.reservationsRepository.search(filter);
+      this.logger.log(reservations);
+      this.logger.log(filter);
       return reservations.map((reservation) => ({
         startDate: reservation.dateStart.toDateString(),
         endDate: reservation.dateEnd.toDateString(),

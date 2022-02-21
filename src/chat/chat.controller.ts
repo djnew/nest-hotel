@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -22,10 +21,8 @@ import {
   ISupportRequestsRepository,
 } from './base/support-requests.repository.base';
 import { SendMessageDTO } from './dto/send-message.dto';
-import {
-  GetChatListParamsDTO,
-  SupportRequestsDto,
-} from './dto/support-requests.dto';
+import { SupportRequestListDto } from './dto/support-request-list.dto';
+import { SupportRequestsDto } from './dto/support-requests.dto';
 import { SupportRequestClientService } from './service/support-request-client.service';
 import { SupportRequestEmployeeService } from './service/support-request-employee.service';
 import { SupportRequestService } from './service/support-request.service';
@@ -42,7 +39,7 @@ export class ChatController {
   ) {}
 
   @Post('client/support-requests/')
-  @Roles(UserRole.Admin)
+  @Roles(UserRole.Client)
   @UseGuards(LoginGuard)
   addSupportRequestMessage(@Req() req, @Body() message: SupportRequestsDto) {
     return this.supportRequestClient.createSupportRequest({
@@ -52,10 +49,10 @@ export class ChatController {
   }
 
   @Get('client/support-requests/')
-  @Roles(UserRole.Admin)
+  @Roles(UserRole.Client)
   @UseGuards(LoginGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  getSupportRequestsClient(@Req() req, @Query() params: GetChatListParamsDTO) {
+  getSupportRequestsClient(@Req() req, @Query() params: SupportRequestListDto) {
     const { limit, offset, isActive } = params;
     return this.supportRequest.findSupportRequests({
       user: req.user.id,
@@ -69,15 +66,15 @@ export class ChatController {
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  getSupportRequestsManager(@Query() params: GetChatListParamsDTO) {
-    if (!params.user) {
-      throw new BadRequestException();
-    }
+  getSupportRequestsManager(
+    @Req() req,
+    @Query() params: SupportRequestListDto,
+  ) {
     const { limit, offset, isActive } = params;
     return this.supportRequest.findSupportRequests({
       limit,
       offset,
-      isActive,
+      isActive: isActive ?? true,
     });
   }
 

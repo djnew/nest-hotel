@@ -37,6 +37,20 @@ export class HotelsController {
     return this.hotelsService.create(createHotelDto);
   }
 
+  @Roles(UserRole.Admin)
+  @UseGuards(LoginGuard)
+  @UsePipes(new ValidationPipe())
+  @Post('admin/hotels/:id')
+  async changeHotel(
+    @Param('id') id: string,
+    @Body() createHotelDto: CreateHotelDTO,
+  ) {
+    return this.hotelsService.update(
+      this.hotelRepository.makeId(id),
+      createHotelDto,
+    );
+  }
+
   @Get('admin/hotels/')
   @Roles(UserRole.Admin)
   @UseGuards(LoginGuard)

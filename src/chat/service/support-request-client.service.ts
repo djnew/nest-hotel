@@ -1,4 +1,10 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import dayjs from 'dayjs';
 import { IUser } from '../../users/base/users.types.base';
 import {
@@ -15,6 +21,7 @@ import { SupportRequestsRepository } from '../repository/support-requests.reposi
 export class SupportRequestClientService
   implements ISupportRequestClientService
 {
+  private logger: Logger = new Logger('SupportRequestClientService');
   constructor(
     private readonly messagesRepository: MessagesRepository,
     private readonly supportRequestRepository: SupportRequestsRepository,
@@ -23,19 +30,26 @@ export class SupportRequestClientService
   async createSupportRequest(
     data: CreateSupportRequestDto,
   ): Promise<ISupportRequestResponse> {
+    this.logger.log(data);
     const supportRequest = await this.supportRequestRepository.create(data);
-    await this.messagesRepository.create({
-      author: data.user,
-      text: data.text,
-      supportRequest: supportRequest.id,
-    });
-
-    return {
-      id: supportRequest.id,
-      createAt: supportRequest.createdAt.toDateString(),
-      isActive: supportRequest.isActive,
-      hasNewMessages: false,
-    };
+    if (supportRequest) {
+      const message = await this.messagesRepository.create({
+        author: data.user,
+        text: data.text,
+        supportRequest: supportRequest.id,
+      });
+      await this.supportRequestRepository.updateMessage(supportRequest.id, [
+        message.id,
+      ]);
+      return {
+        id: supportRequest.id,
+        createAt: supportRequest.createdAt.toDateString(),
+        isActive: supportRequest.isActive,
+        hasNewMessages: false,
+      };
+    } else {
+      throw new BadRequestException();
+    }
   }
 
   async checkAccess(id: ISupportRequest['_id'], userId: IUser['_id']) {

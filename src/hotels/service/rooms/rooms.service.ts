@@ -95,19 +95,23 @@ export class RoomsService implements IHotelRoomsService {
       }
     }
 
-    const roomFilterEnabled = {};
+    const roomFilter = {};
     if ('isEnabled' in filter) {
-      roomFilterEnabled['isEnabled'] = filter.isEnabled;
-    }
-    this.logger.debug(hotels);
-    if (hotels) {
-      roomFilterEnabled['hotel'] = hotels.map((hotel) => hotel.id);
+      roomFilter['isEnabled'] = filter.isEnabled;
     }
 
-    const rooms = await this.roomRepository.search(filter, offset, limit);
+    if (hotels) {
+      if (hotels.length > 1) {
+        roomFilter['hotel'] = hotels.map((hotel) => hotel.id);
+      } else {
+        roomFilter['hotel'] = hotels[0].id;
+      }
+    }
+    this.logger.debug(roomFilter);
+    const rooms = await this.roomRepository.search(roomFilter, offset, limit);
 
     if (!rooms.length) {
-      throw new NotFoundException();
+      return [];
     }
 
     return rooms.map((room) => ({
@@ -127,9 +131,14 @@ export class RoomsService implements IHotelRoomsService {
   ): Promise<ICreateRoomResponse> {
     const book = await this.roomRepository.getById(id);
     book.images.forEach((image) => {
-      if (!data.images.includes(image)) {
-        fs.rmSync(path.resolve('../../../', image));
-      }
+      fs.stat(image, (err) => {
+        this.logger.log(err);
+        if (err === null) {
+          if (!data.images.includes(image)) {
+            fs.rmSync(image);
+          }
+        }
+      });
     });
     const updated = await this.roomRepository.update(id, data);
     if (!updated) {

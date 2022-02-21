@@ -59,7 +59,22 @@ export class ReservationsController {
     return this.reservationsService.addReservation(reservationCreateData);
   }
 
-  @Get('client/reservations/:userId')
+  @Get('client/reservations/')
+  @Roles(UserRole.Client)
+  @UseGuards(LoginGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  getAllUserReservationClient(
+    @Req() req,
+    @Query() reservationSearch: ReservationSearchDto,
+  ) {
+    return this.reservationsService.getReservations({
+      user: this.usersRepository.makeId(req.user.id),
+      dateEnd: reservationSearch.endDate,
+      dateStart: reservationSearch.startDate,
+    });
+  }
+
+  @Get('manager/reservations/:userId')
   @Roles(UserRole.Manager)
   @UseGuards(LoginGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -73,6 +88,16 @@ export class ReservationsController {
       dateEnd: reservationSearch.endDate,
       dateStart: reservationSearch.startDate,
     });
+  }
+
+  @Delete('/client/reservations/:reservationId')
+  @Roles(UserRole.Client)
+  @UseGuards(LoginGuard)
+  removeClientReservation(@Req() req, @Param('reservationId') id: string) {
+    return this.reservationsService.removeReservation(
+      this.reservationRepository.makeId(id),
+      this.usersRepository.makeId(req.user.id),
+    );
   }
 
   @Delete('/manager/reservations/:userId/:reservationId')

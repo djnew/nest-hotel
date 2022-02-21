@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateHotelDTO } from 'src/hotels/dto/create-hotel.dto';
@@ -22,6 +23,7 @@ import { HotelsFilterService } from './hotels-filter.service';
 export class HotelsService
   implements IHotelsService, IHotelServiceAdditionalMethods
 {
+  private logger: Logger = new Logger('RoomsService');
   constructor(
     @Inject(HotelsFilterService)
     private readonly hotelFilter: HotelsFilterService,
@@ -32,9 +34,29 @@ export class HotelsService
   async create(
     createHotelDto: CreateHotelDTO,
   ): Promise<IHotelInSearchRoomResponse> {
-    const hotel = this.hotelRepository.create(createHotelDto);
+    const hotel = await this.hotelRepository.create(createHotelDto);
     if (hotel) {
-      return hotel;
+      return {
+        id: hotel.id,
+        title: hotel.title,
+        description: hotel.description,
+      };
+    } else {
+      throw new BadRequestException();
+    }
+  }
+  async update(
+    id: IHotel['_id'],
+    params: CreateHotelDTO,
+  ): Promise<IHotelInSearchRoomResponse> {
+    const updated = await this.hotelRepository.update(id, params);
+    if (updated) {
+      const hotel = await this.hotelRepository.getById(id);
+      return {
+        id: hotel.id,
+        title: hotel.title,
+        description: hotel.description,
+      };
     } else {
       throw new BadRequestException();
     }

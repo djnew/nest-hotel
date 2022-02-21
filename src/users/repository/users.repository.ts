@@ -39,7 +39,7 @@ export class UsersRepository implements IUsersRepository {
   }
   async search(filter, limit: number, offset: number): Promise<UserDocument[]> {
     try {
-      return await this.userModel
+      return this.userModel
         .find(filter)
         .limit(limit)
         .skip(offset)
@@ -52,7 +52,12 @@ export class UsersRepository implements IUsersRepository {
   }
 
   async getById(id: IUser['_id']): Promise<UserDocument> {
-    return this.userModel.findOne({ _id: id }).exec();
+    try {
+      return this.userModel.findOne({ _id: id }).exec();
+    } catch (e) {
+      this.logger.error(e);
+      return null;
+    }
   }
 
   async getOneByFilter(filter): Promise<UserDocument> {

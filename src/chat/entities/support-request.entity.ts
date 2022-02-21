@@ -11,7 +11,7 @@ export class SupportRequest implements ISupportRequest {
   @Prop({ optional: true })
   isActive?: boolean;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Message', optional: true })
+  @Prop({ optional: true })
   messages?: IMessage['_id'][];
 
   @Prop({ required: true, type: MongooseSchema.Types.ObjectId, ref: 'User' })

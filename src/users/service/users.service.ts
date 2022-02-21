@@ -57,30 +57,30 @@ export class UsersService implements IUserService {
     const { filter, offset, limit } =
       this.filterService.createUserListFilter(params);
 
-    try {
-      const userList = await this.usersRepository.search(filter, limit, offset);
+    this.logger.log(filter);
+    const userList = await this.usersRepository.search(filter, limit, offset);
+    if (userList.length) {
       return userList.map((user) => ({
         id: user._id,
         name: user.name,
         email: user.email,
+        contactPhone: user.contactPhone,
       }));
-    } catch (e) {
-      this.logger.error(e);
-      throw new BadRequestException();
+    } else {
+      return [];
     }
   }
 
   async findById(id: IUser['_id']): Promise<IUserResponse> {
-    try {
-      const user = await this.usersRepository.getById(id);
+    const user = await this.usersRepository.getById(id);
+    if (user) {
       return {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
       };
-    } catch (e) {
-      this.logger.error(e);
+    } else {
       throw new NotFoundException();
     }
   }

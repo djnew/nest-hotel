@@ -21,7 +21,6 @@ import {
   ISupportRequestResponse,
   MessageDocument,
   SendMessageDto,
-  SupportRequestDocument,
   SupportRequestsSubscribers,
 } from '../base/chat.types.base';
 import { ISupportRequestService } from '../base/support-request.service.base';
@@ -35,7 +34,6 @@ import { SupportRequestFilterService } from './support-request-filter.service';
 @Injectable()
 export class SupportRequestService implements ISupportRequestService {
   constructor(
-    @InjectModel(SupportRequest.name)
     private readonly supportRequestFilter: SupportRequestFilterService,
     @Inject(I_USERS_REPOSITORY)
     private readonly usersRepository: IUsersRepository,
